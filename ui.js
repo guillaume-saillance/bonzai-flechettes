@@ -159,6 +159,18 @@ if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("service-worker.js").catch(() => {});
   });
+
+  // Mise à jour propre : si la page est déjà contrôlée par une ancienne
+  // version, on recharge une fois quand la nouvelle prend le relais. Évite
+  // l'état « moitié ancienne / moitié neuve » après un déploiement.
+  if (navigator.serviceWorker.controller) {
+    let majEnCours = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (majEnCours) return;
+      majEnCours = true;
+      window.location.reload();
+    });
+  }
 }
 
 // Stockage durable : demande au navigateur de ne pas purger automatiquement

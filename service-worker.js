@@ -9,7 +9,7 @@
  * fichiers, sinon les anciennes versions resteront servies depuis le cache.
  */
 
-const CACHE = "bonzai-v5";
+const CACHE = "bonzai-v6";
 
 // Fichiers de l'« app shell » préchargés dès l'installation.
 const ASSETS = [
