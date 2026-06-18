@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Organisation — Bonzaï</title>
+    <link rel="icon" type="image/svg+xml" href="logo.svg" />
+    <!-- PWA : application installable + hors-ligne -->
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#c1121f" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Bonzaï" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="chrome">
+      <header class="app-bar"></header>
+      <nav class="tabbar"></nav>
+    </div>
+
+    <main>
+      <div class="segments" id="segments">
+        <button data-vue="gerer" class="actif">⚙️ Gérer</button>
+        <button data-vue="perso">🎨 Personnaliser</button>
+      </div>
+
+      <!-- ============ GÉRER ============ -->
+      <div id="vue-gerer">
+        <section class="carte">
+          <h2>Mes groupes</h2>
+          <p class="petit" id="aide-groupe"></p>
+          <div class="groupes-grille" id="groupes-grille"></div>
+        </section>
+
+        <section class="carte" id="carte-joueurs">
+          <h2>Joueurs de <span id="nom-groupe-joueurs"></span></h2>
+          <div class="champ">
+            <label for="nom-joueur">Ajouter un joueur</label>
+            <div class="ligne">
+              <input
+                type="text"
+                id="nom-joueur"
+                placeholder="Prénom…"
+                autocomplete="off"
+              />
+              <button class="btn-secondaire" id="btn-ajouter" style="flex: 0 0 auto">
+                + Ajouter
+              </button>
+            </div>
+          </div>
+          <div id="message"></div>
+          <div id="liste-joueurs"></div>
+        </section>
+
+        <section class="carte" id="carte-cta" style="display: none">
+          <p style="margin: 0 0 0.8rem">Tout est prêt&nbsp;! Place au jeu&nbsp;🎯</p>
+          <a href="partie.html" class="btn-principal" style="display: block;
+            text-align: center; text-decoration: none">Lancer une partie →</a>
+        </section>
+
+        <section class="carte" id="carte-sauvegarde">
+          <h2>💾 Sauvegarde</h2>
+          <p class="petit">
+            Tes données restent sur cet appareil. Exporte-les de temps en temps
+            pour ne rien perdre&nbsp;— et pour les transférer sur un autre
+            téléphone ou ordinateur (puis Importer là-bas).
+          </p>
+          <div class="ligne">
+            <button class="btn-secondaire" id="btn-exporter" style="flex: 1">
+              ⬇️ Exporter
+            </button>
+            <button class="btn-secondaire" id="btn-importer" style="flex: 1">
+              ⬆️ Importer
+            </button>
+          </div>
+          <input
+            type="file"
+            id="fichier-import"
+            accept="application/json,.json"
+            hidden
+          />
+          <div id="message-sauvegarde"></div>
+        </section>
+      </div>
+
+      <!-- ============ PERSONNALISER ============ -->
+      <div id="vue-perso" style="display: none">
+        <section class="carte" id="perso-bloquee" style="display: none">
+          <p class="vide" id="perso-texte-bloque"></p>
+        </section>
+
+        <div id="perso-zone">
+          <section class="carte">
+            <h2>Joueur de <span id="perso-nom-groupe"></span></h2>
+            <div class="joueurs-choix" id="joueurs-choix"></div>
+          </section>
+
+          <section class="carte">
+            <h2>Avatar</h2>
+            <div class="avatar-preview" id="avatar-preview"></div>
+            <div class="champ">
+              <label>Couleur</label>
+              <div class="swatches" id="swatches"></div>
+            </div>
+            <div class="champ">
+              <label>Emblème</label>
+              <div class="emblemes" id="emblemes"></div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <footer>Bonzaï 🌳 — vos données restent sur cet appareil.</footer>
+
+    <script src="app.js"></script>
+    <script src="ui.js"></script>
+    <script src="onboarding.js"></script>
+    <script>
+      monterChrome("organisation");
+      let donnees = chargerDonnees();
+      let selId = null;
+      let vue = "gerer";
+
+      const elMessage = document.getElementById("message");
+      const elListeJoueurs = document.getElementById("liste-joueurs");
+      const elNom = document.getElementById("nom-joueur");
+      const elAideGroupe = document.getElementById("aide-groupe");
+      const elGrille = document.getElementById("groupes-grille");
+      const elCarteJoueurs = document.getElementById("carte-joueurs");
+      const elCarteCta = document.getElementById("carte-cta");
+      const elNomGroupeJoueurs = document.getElementById("nom-groupe-joueurs");
+
+      const elVueGerer = document.getElementById("vue-gerer");
+      const elVuePerso = document.getElementById("vue-perso");
+      const elPersoBloquee = document.getElementById("perso-bloquee");
+      const elPersoTexte = document.getElementById("perso-texte-bloque");
+      const elPersoZone = document.getElementById("perso-zone");
+      const elPersoNomGroupe = document.getElementById("perso-nom-groupe");
+      const elChoix = document.getElementById("joueurs-choix");
+      const elPreview = document.getElementById("avatar-preview");
+      const elSwatches = document.getElementById("swatches");
+      const elEmblemes = document.getElementById("emblemes");
+
+      function afficherMessage(html, type) {
+        elMessage.innerHTML = `<div class="message ${type}">${html}</div>`;
+        setTimeout(() => {
+          if (elMessage.querySelector(".message")) elMessage.innerHTML = "";
+        }, 4000);
+      }
+
+      // --- Sous-onglets ---
+      document.querySelectorAll("#segments button").forEach((b) => {
+        b.addEventListener("click", () => {
+          vue = b.dataset.vue;
+          document
+            .querySelectorAll("#segments button")
+            .forEach((x) => x.classList.toggle("actif", x === b));
+          elVueGerer.style.display = vue === "gerer" ? "" : "none";
+          elVuePerso.style.display = vue === "perso" ? "" : "none";
+          rendreTout();
+        });
+      });
+
+      // --- GÉRER : groupes ---
+      function creerGroupeViaPrompt() {
+        const nom = prompt("Nom du nouveau groupe (ex : Famille, Amis…)");
+        if (!creerGroupe(donnees, nom)) return;
+        sauvegarder(donnees);
+        rendreTout();
+      }
+
+      function rendreGroupes() {
+        elGrille.innerHTML = "";
+        elAideGroupe.textContent =
+          donnees.groupes.length === 0
+            ? "Crée ton premier groupe (ex : Famille, Soirée fléchettes…) pour commencer."
+            : "Touche une carte pour choisir le groupe actif.";
+
+        donnees.groupes.forEach((g) => {
+          const actif = g.id === donnees.groupeActifId;
+          const carte = document.createElement("div");
+          carte.className = "groupe-carte" + (actif ? " actif" : "");
+          carte.innerHTML = `
+            <div class="groupe-actions">
+              <button class="icone" data-action="renommer" title="Renommer">✏️</button>
+              <button class="icone" data-action="supprimer" title="Supprimer">🗑️</button>
+            </div>
+            <div class="groupe-nom">${g.nom}</div>
+            <div class="petit">${g.joueurs.length} joueur${
+            g.joueurs.length > 1 ? "s" : ""
+          } · ${g.parties.length} partie${g.parties.length > 1 ? "s" : ""}</div>
+            ${actif ? '<div class="groupe-badge">✓ actif</div>' : ""}`;
+
+          carte.addEventListener("click", () => {
+            definirGroupeActif(donnees, g.id);
+            sauvegarder(donnees);
+            selId = null;
+            rendreTout();
+          });
+          carte
+            .querySelector('[data-action="renommer"]')
+            .addEventListener("click", (e) => {
+              e.stopPropagation();
+              const nom = prompt("Nouveau nom du groupe :", g.nom);
+              if (nom === null || !renommerGroupe(g, nom)) return;
+              sauvegarder(donnees);
+              rendreTout();
+            });
+          carte
+            .querySelector('[data-action="supprimer"]')
+            .addEventListener("click", (e) => {
+              e.stopPropagation();
+              if (
+                !confirm(
+                  `Supprimer le groupe « ${g.nom} » et toutes ses parties ? C'est définitif.`
+                )
+              )
+                return;
+              supprimerGroupe(donnees, g.id);
+              sauvegarder(donnees);
+              selId = null;
+              rendreTout();
+            });
+          elGrille.appendChild(carte);
+        });
+
+        const ajout = document.createElement("button");
+        ajout.className = "groupe-carte ajout";
+        ajout.innerHTML = "<span>＋</span>Nouveau groupe";
+        ajout.addEventListener("click", creerGroupeViaPrompt);
+        elGrille.appendChild(ajout);
+      }
+
+      // --- GÉRER : joueurs ---
+      function rendreListeJoueurs() {
+        const g = groupeActif(donnees);
+        elCarteJoueurs.style.display = g ? "" : "none";
+        if (!g) return;
+        elNomGroupeJoueurs.textContent = g.nom;
+        if (g.joueurs.length === 0) {
+          elListeJoueurs.innerHTML =
+            '<p class="vide">Aucun joueur. Ajoute-en au moins 2 pour pouvoir jouer.</p>';
+          return;
+        }
+        elListeJoueurs.innerHTML = "";
+        const wrap = document.createElement("div");
+        wrap.className = "joueurs-liste";
+        g.joueurs.forEach((j) => {
+          const puce = document.createElement("span");
+          puce.className = "puce";
+          puce.innerHTML = `${avatarHTML(j, 22)}<span>${j.nom}</span>
+            <button class="puce-x" title="Retirer du groupe">✕</button>`;
+          puce.querySelector(".puce-x").addEventListener("click", () => {
+            if (!confirm(`Retirer ${j.nom} du groupe ?`)) return;
+            supprimerJoueur(g, j.id);
+            sauvegarder(donnees);
+            rendreTout();
+          });
+          wrap.appendChild(puce);
+        });
+        elListeJoueurs.appendChild(wrap);
+      }
+
+      function rendreCta() {
+        const g = groupeActif(donnees);
+        elCarteCta.style.display =
+          vue === "gerer" && g && g.joueurs.length >= 2 ? "" : "none";
+      }
+
+      document.getElementById("btn-ajouter").addEventListener("click", () => {
+        const g = groupeActif(donnees);
+        if (!g) return;
+        const joueur = ajouterJoueur(g, elNom.value);
+        if (!joueur) {
+          afficherMessage("Nom vide ou déjà existant.", "erreur");
+          return;
+        }
+        sauvegarder(donnees);
+        elNom.value = "";
+        elNom.focus();
+        rendreTout();
+        afficherMessage(`${joueur.nom} a rejoint le groupe 🎯`, "ok");
+      });
+
+      elNom.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") document.getElementById("btn-ajouter").click();
+      });
+
+      // --- PERSONNALISER ---
+      function joueurSel(g) {
+        return g.joueurs.find((j) => j.id === selId) || g.joueurs[0] || null;
+      }
+
+      function rendrePerso() {
+        const g = groupeActif(donnees);
+        const pret = g && g.joueurs.length >= 1;
+        elPersoBloquee.style.display = pret ? "none" : "";
+        elPersoZone.style.display = pret ? "" : "none";
+        if (!pret) {
+          elPersoTexte.textContent = g
+            ? "Ajoute au moins un joueur (onglet Gérer) pour le personnaliser."
+            : "Crée un groupe et des joueurs dans l'onglet Gérer.";
+          return;
+        }
+        if (!selId || !g.joueurs.some((j) => j.id === selId))
+          selId = g.joueurs[0].id;
+        const j = joueurSel(g);
+        elPersoNomGroupe.textContent = g.nom;
+
+        elChoix.innerHTML = "";
+        g.joueurs.forEach((jj) => {
+          const chip = document.createElement("div");
+          chip.className = "joueur-chip" + (jj.id === selId ? " actif" : "");
+          chip.innerHTML = `${avatarHTML(jj, 40)}<span class="nom">${jj.nom}</span>`;
+          chip.addEventListener("click", () => {
+            selId = jj.id;
+            rendrePerso();
+          });
+          elChoix.appendChild(chip);
+        });
+
+        elPreview.innerHTML = `${avatarHTML(j, 64)}<span class="nom-grand">${j.nom}</span>`;
+
+        elSwatches.innerHTML = "";
+        PALETTE_AVATARS.forEach((c) => {
+          const sw = document.createElement("div");
+          sw.className = "swatch" + (c === j.couleur ? " actif" : "");
+          sw.style.background = c;
+          sw.addEventListener("click", () => {
+            personnaliserJoueur(j, c, undefined);
+            sauvegarder(donnees);
+            rendrePerso();
+          });
+          elSwatches.appendChild(sw);
+        });
+
+        elEmblemes.innerHTML = "";
+        const init = document.createElement("div");
+        init.className = "embleme-opt" + (!j.embleme ? " actif" : "");
+        init.textContent = "Aa";
+        init.style.cssText = "font-size:0.9rem;font-weight:700";
+        init.title = "Initiales";
+        init.addEventListener("click", () => {
+          personnaliserJoueur(j, undefined, "");
+          sauvegarder(donnees);
+          rendrePerso();
+        });
+        elEmblemes.appendChild(init);
+        EMBLEMES.forEach((e) => {
+          const opt = document.createElement("div");
+          opt.className = "embleme-opt" + (e === j.embleme ? " actif" : "");
+          opt.textContent = e;
+          opt.addEventListener("click", () => {
+            personnaliserJoueur(j, undefined, e);
+            sauvegarder(donnees);
+            rendrePerso();
+          });
+          elEmblemes.appendChild(opt);
+        });
+      }
+
+      function rendreTout() {
+        rendreGroupes();
+        rendreListeJoueurs();
+        rendreCta();
+        if (vue === "perso") rendrePerso();
+      }
+
+      // --- Sauvegarde (export / import) ---
+      const elMsgSauvegarde = document.getElementById("message-sauvegarde");
+      const elFichierImport = document.getElementById("fichier-import");
+
+      function afficherMessageSauvegarde(html, type) {
+        elMsgSauvegarde.innerHTML = `<div class="message ${type}">${html}</div>`;
+        setTimeout(() => {
+          if (elMsgSauvegarde.querySelector(".message"))
+            elMsgSauvegarde.innerHTML = "";
+        }, 5000);
+      }
+
+      document.getElementById("btn-exporter").addEventListener("click", () => {
+        const blob = new Blob([exporterDonneesJSON()], {
+          type: "application/json",
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = nomFichierSauvegarde();
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        afficherMessageSauvegarde("Sauvegarde téléchargée ✅", "ok");
+      });
+
+      document
+        .getElementById("btn-importer")
+        .addEventListener("click", () => elFichierImport.click());
+
+      elFichierImport.addEventListener("change", () => {
+        const fichier = elFichierImport.files[0];
+        if (!fichier) return;
+        const lecteur = new FileReader();
+        lecteur.onload = () => {
+          elFichierImport.value = "";
+          if (
+            !confirm(
+              "Importer cette sauvegarde remplacera toutes les données de cet appareil. Continuer ?"
+            )
+          )
+            return;
+          const res = importerDonneesJSON(lecteur.result);
+          if (!res.ok) {
+            afficherMessageSauvegarde(res.message, "erreur");
+            return;
+          }
+          donnees = chargerDonnees();
+          selId = null;
+          rendreTout();
+          afficherMessageSauvegarde(
+            `Sauvegarde importée — ${res.nbGroupes} groupe${
+              res.nbGroupes > 1 ? "s" : ""
+            } restauré${res.nbGroupes > 1 ? "s" : ""} ✅`,
+            "ok"
+          );
+        };
+        lecteur.readAsText(fichier);
+      });
+
+      rendreTout();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Règles — Bonzaï</title>
+    <link rel="icon" type="image/svg+xml" href="logo.svg" />
+    <!-- PWA : application installable + hors-ligne -->
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#c1121f" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Bonzaï" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="chrome">
+      <header class="app-bar"></header>
+      <nav class="tabbar"></nav>
+    </div>
+
+    <main>
+      <section class="carte">
+        <h2>🎯 Le but du jeu</h2>
+        <p>
+          Bonzaï détermine <strong>qui est le meilleur aux fléchettes</strong>
+          dans un groupe (famille, amis, collègues…). Vous jouez vos parties
+          dans la vraie vie&nbsp;; ici, vous notez simplement
+          <strong>qui a gagné</strong>. L'application tient le score et le
+          classement à votre place.
+        </p>
+      </section>
+
+      <section class="carte">
+        <h2>🧮 Comment sont calculés les points</h2>
+        <p>
+          Chaque joueur démarre à <strong>1000 points</strong>. À chaque partie,
+          on classe les joueurs par <strong>ordre d'arrivée</strong> (1er, 2e,
+          3e…). Chaque joueur est ensuite comparé à tous les autres comme une
+          série de duels&nbsp;: <strong>finir devant quelqu'un rapporte des
+          points, finir derrière en coûte</strong>.
+        </p>
+        <ul>
+          <li>
+            🏆 Plus on finit haut, plus on gagne&nbsp;; le dernier perd des
+            points. <strong>Il y a donc un vrai enjeu</strong> — on peut
+            reculer&nbsp;!
+          </li>
+          <li>
+            ⚖️ Mais c'est <strong>déséquilibré en faveur de l'attaque</strong>
+            : une victoire rapporte plus qu'une défaite ne coûte.
+          </li>
+          <li>
+            💥 Battre un joueur <strong>mieux classé</strong> que soi rapporte
+            gros&nbsp;; perdre contre plus faible coûte cher.
+          </li>
+        </ul>
+        <p class="petit">Quelques exemples (joueurs de même niveau)&nbsp;:</p>
+        <ul class="petit">
+          <li>Duel — 1er&nbsp;: <strong>+20</strong>, 2e&nbsp;: <strong>−12</strong>.</li>
+          <li>
+            À 3 — 1er&nbsp;: <strong>+40</strong>, 2e&nbsp;:
+            <strong>±0</strong>, 3e&nbsp;: <strong>−24</strong>.
+          </li>
+          <li>
+            À 4 — 1er&nbsp;: <strong>+60</strong>, 2e&nbsp;:
+            <strong>+20</strong>, 3e&nbsp;: <strong>−12</strong>, 4e&nbsp;:
+            <strong>−36</strong>.
+          </li>
+        </ul>
+        <p class="petit">
+          C'est une variante du classement <strong>ELO</strong> utilisé aux
+          échecs, adaptée aux parties à plusieurs et réglée pour récompenser
+          l'audace.
+        </p>
+      </section>
+
+      <section class="carte">
+        <h2>🏆 Le gagnant</h2>
+        <p>
+          Le meilleur est celui qui a le <strong>plus haut score</strong> sur
+          la <strong>période choisie</strong>, réglable dans l'onglet
+          Classement&nbsp;:
+        </p>
+        <ul>
+          <li>
+            <strong>Indéterminée</strong>&nbsp;: le classement de toujours, qui
+            continue indéfiniment.
+          </li>
+          <li>
+            <strong>Définie</strong>&nbsp;: un tournoi sur une période précise
+            (du… au…), idéal pour une saison ou une soirée.
+          </li>
+        </ul>
+      </section>
+
+      <section class="carte">
+        <h2>👥 Les groupes</h2>
+        <p>
+          Chaque <strong>groupe</strong> est indépendant&nbsp;: ses joueurs, ses
+          parties, sa période et son classement lui sont propres. Créez-en
+          autant que vous voulez (Famille, Amis, Bureau…) depuis l'onglet
+          Organisation.
+        </p>
+        <a href="partie.html" class="btn-principal" style="display: block;
+          text-align: center; text-decoration: none; margin-top: 0.5rem">
+          🎯 Lancer une partie
+        </a>
+      </section>
+
+      <section class="carte" style="text-align: center">
+        <h2>🚀 Démarrage</h2>
+        <p>
+          Besoin d'un rappel pour installer l'application ou sauvegarder vos
+          scores&nbsp;?
+        </p>
+        <button class="btn-secondaire" id="btn-revoir-guide" style="margin-top: 0.3rem">
+          Revoir le guide de démarrage
+        </button>
+      </section>
+    </main>
+
+    <footer>Bonzaï 🌳 — vos données restent sur cet appareil.</footer>
+
+    <script src="ui.js"></script>
+    <script src="onboarding.js"></script>
+    <script>
+      monterChrome("regles");
+      document
+        .getElementById("btn-revoir-guide")
+        .addEventListener("click", openOnboarding);
+    </script>
+  </body>
+</html>

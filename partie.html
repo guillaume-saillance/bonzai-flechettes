@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Partie — Bonzaï</title>
+    <link rel="icon" type="image/svg+xml" href="logo.svg" />
+    <!-- PWA : application installable + hors-ligne -->
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#c1121f" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Bonzaï" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="chrome">
+      <header class="app-bar"></header>
+      <nav class="tabbar"></nav>
+    </div>
+
+    <main>
+      <div class="barre-groupe" id="barre-groupe">
+        <span>Groupe&nbsp;: <strong id="nom-groupe-actif"></strong></span>
+        <button
+          class="btn-discret"
+          id="btn-son"
+          style="margin-left: auto"
+          title="Activer ou couper le son"
+        ></button>
+      </div>
+
+      <section class="carte" id="carte-bloquee" style="display: none">
+        <p class="vide" id="texte-bloque"></p>
+        <a href="index.html" class="btn-secondaire" style="display: inline-block;
+          text-decoration: none; margin-top: 0.5rem">→ Aller à l'organisation</a>
+      </section>
+
+      <div id="zone-partie">
+        <section class="carte">
+          <h2>Nouvelle partie</h2>
+          <div class="champ">
+            <label>Qui a participé&nbsp;? (au moins 2)</label>
+            <div class="joueurs-liste" id="liste-participants"></div>
+          </div>
+
+          <div class="champ">
+            <div class="entete-section">
+              <label id="label-ordre" style="margin: 0">Ordre d'arrivée</label>
+              <button class="btn-discret" id="btn-recommencer" style="display: none">
+                ↺ Recommencer
+              </button>
+            </div>
+            <div class="gagnant-options" id="liste-ordre"></div>
+          </div>
+
+          <button class="btn-principal" id="btn-enregistrer">
+            🏆 Enregistrer la partie
+          </button>
+
+          <div id="message"></div>
+        </section>
+
+        <section class="carte" id="carte-podium" style="display: none">
+          <div class="entete-section">
+            <h2>Top du moment</h2>
+            <a href="classement.html" class="petit">Voir tout →</a>
+          </div>
+          <div id="mini-podium"></div>
+        </section>
+      </div>
+    </main>
+
+    <footer>Bonzaï 🌳 — vos données restent sur cet appareil.</footer>
+
+    <script src="app.js"></script>
+    <script src="ui.js"></script>
+    <script src="anim.js"></script>
+    <script src="onboarding.js"></script>
+    <script>
+      monterChrome("partie");
+      let donnees = chargerDonnees();
+      let participantsChoisis = new Set();
+      let ordre = []; // ids classés du 1er au dernier
+
+      const elMessage = document.getElementById("message");
+      const elParticipants = document.getElementById("liste-participants");
+      const elOrdre = document.getElementById("liste-ordre");
+      const elLabelOrdre = document.getElementById("label-ordre");
+      const elBtnRecommencer = document.getElementById("btn-recommencer");
+      const elCartePodium = document.getElementById("carte-podium");
+      const elMiniPodium = document.getElementById("mini-podium");
+      const elZonePartie = document.getElementById("zone-partie");
+      const elCarteBloquee = document.getElementById("carte-bloquee");
+      const elTexteBloque = document.getElementById("texte-bloque");
+      const elBarreGroupe = document.getElementById("barre-groupe");
+      const elNomGroupe = document.getElementById("nom-groupe-actif");
+
+      const medailles = ["🥇", "🥈", "🥉"];
+      const medaille = (i) => medailles[i] || `${i + 1}ᵉ`;
+
+      function afficherMessage(html, type, persistant) {
+        elMessage.innerHTML = `<div class="message ${type}">${html}</div>`;
+        if (!persistant) {
+          setTimeout(() => {
+            if (elMessage.querySelector(".message")) elMessage.innerHTML = "";
+          }, 4000);
+        }
+      }
+
+      function rendreParticipants() {
+        const g = groupeActif(donnees);
+        elParticipants.innerHTML = "";
+        g.joueurs.forEach((j) => {
+          const choisi = participantsChoisis.has(j.id);
+          const label = document.createElement("label");
+          label.className = "puce" + (choisi ? " choisi" : "");
+          label.innerHTML = `
+            <input type="checkbox" ${choisi ? "checked" : ""} />
+            ${avatarHTML(j, 22)}<span>${j.nom}</span>`;
+          label.querySelector("input").addEventListener("change", (e) => {
+            if (e.target.checked) participantsChoisis.add(j.id);
+            else participantsChoisis.delete(j.id);
+            ordre = ordre.filter((id) => participantsChoisis.has(id));
+            rendreParticipants();
+            rendreOrdre();
+          });
+          elParticipants.appendChild(label);
+        });
+      }
+
+      function rendreOrdre() {
+        const g = groupeActif(donnees);
+        const ids = [...participantsChoisis];
+        ordre = ordre.filter((id) => participantsChoisis.has(id));
+
+        elBtnRecommencer.style.display = ordre.length ? "" : "none";
+
+        if (ids.length < 2) {
+          elLabelOrdre.textContent = "Ordre d'arrivée";
+          elOrdre.innerHTML =
+            '<p class="vide">Sélectionne au moins 2 participants.</p>';
+          return;
+        }
+
+        elLabelOrdre.textContent =
+          ids.length === 2
+            ? "Qui a gagné ?"
+            : "Ordre d'arrivée (clique du 1er au dernier)";
+
+        // Le dernier joueur non classé est déduit automatiquement.
+        const nonClasses = ids.filter((id) => !ordre.includes(id));
+        const dernierDeduit = nonClasses.length === 1 ? nonClasses[0] : null;
+
+        elOrdre.innerHTML = "";
+        ids.forEach((id) => {
+          const j = joueurParId(g, id);
+          const pos = ordre.indexOf(id);
+          const opt = document.createElement("div");
+
+          if (pos >= 0) {
+            opt.className = "gagnant-opt choisi";
+            opt.innerHTML = `${medaille(pos)} ${avatarHTML(j, 24)} <strong>${j.nom}</strong>`;
+          } else if (id === dernierDeduit) {
+            opt.className = "gagnant-opt deduit";
+            opt.innerHTML = `${medaille(ids.length - 1)} ${avatarHTML(
+              j,
+              24
+            )} ${j.nom} <span class="petit">(dernier)</span>`;
+          } else {
+            opt.className = "gagnant-opt cliquable";
+            opt.innerHTML = `＋ ${avatarHTML(j, 24)} ${j.nom}`;
+            opt.addEventListener("click", () => {
+              ordre.push(id);
+              rendreOrdre();
+            });
+          }
+          elOrdre.appendChild(opt);
+        });
+      }
+
+      elBtnRecommencer.addEventListener("click", () => {
+        ordre = [];
+        rendreOrdre();
+      });
+
+      function rendreMiniPodium() {
+        const g = groupeActif(donnees);
+        const classement = calculerClassement(g).slice(0, 3);
+        if (g.parties.length === 0 || classement.length === 0) {
+          elCartePodium.style.display = "none";
+          return;
+        }
+        elCartePodium.style.display = "";
+        elMiniPodium.innerHTML = classement
+          .map(
+            (j, i) => `<div style="display:flex;justify-content:space-between;
+              align-items:center;padding:0.4rem 0;border-bottom:1px solid var(--ligne)">
+              <span class="cellule-joueur">${medailles[i]} ${avatarHTML(
+              j,
+              24
+            )} ${j.nom}</span>
+              <strong style="color:var(--texte)">${j.score}</strong>
+            </div>`
+          )
+          .join("");
+      }
+
+      document
+        .getElementById("btn-enregistrer")
+        .addEventListener("click", () => {
+          const g = groupeActif(donnees);
+          const ids = [...participantsChoisis];
+          if (ids.length < 2) {
+            afficherMessage("Il faut au moins 2 participants.", "erreur");
+            return;
+          }
+          const manquants = ids.filter((id) => !ordre.includes(id));
+          if (manquants.length > 1) {
+            afficherMessage(
+              "Termine le classement : clique les joueurs dans l'ordre d'arrivée.",
+              "erreur"
+            );
+            return;
+          }
+          const ordreFinal = [...ordre, ...manquants]; // complète le dernier
+
+          // Classement avant/après pour les variations ET la gamification.
+          const clAvant = calculerClassement(g);
+          const avant = {};
+          const trophAvant = {};
+          clAvant.forEach((e) => {
+            avant[e.id] = e.score;
+            trophAvant[e.id] = new Set(e.trophees);
+          });
+
+          enregistrerPartie(g, ordreFinal);
+          sauvegarder(donnees);
+
+          const clApres = calculerClassement(g);
+          const apres = {};
+          clApres.forEach((e) => (apres[e.id] = e.score));
+
+          const nomGagnant = joueurParId(g, ordreFinal[0]).nom;
+
+          // Animations : confettis + son + toasts (série, trophées débloqués).
+          lancerConfettis();
+          jouerSonVictoire();
+          const annonces = [];
+          const gagEntree = clApres.find((e) => e.id === ordreFinal[0]);
+          if (gagEntree && BONUS_SERIE[gagEntree.serie]) {
+            annonces.push({
+              emoji: "🔥",
+              titre: `Série de ${gagEntree.serie} !`,
+              sous: `${nomGagnant} empoche +${BONUS_SERIE[gagEntree.serie]} points bonus`,
+            });
+          }
+          clApres.forEach((e) => {
+            e.trophees.forEach((tid) => {
+              if (trophAvant[e.id] && trophAvant[e.id].has(tid)) return;
+              const t = tropheeParId(tid);
+              const j = joueurParId(g, e.id);
+              if (t && j)
+                annonces.push({
+                  emoji: t.emoji,
+                  titre: `Trophée : ${t.nom}`,
+                  sous: `${j.nom} — ${t.desc}`,
+                });
+            });
+          });
+          toastsEnChaine(annonces);
+
+          participantsChoisis = new Set();
+          ordre = [];
+          rendreParticipants();
+          rendreOrdre();
+          rendreMiniPodium();
+
+          const gagId = ordreFinal[0];
+          const gag = joueurParId(g, gagId);
+          const dGag = apres[gagId] - avant[gagId];
+          const autres = ordreFinal
+            .slice(1)
+            .map((id, i) => {
+              const j = joueurParId(g, id);
+              const d = apres[id] - avant[id];
+              return `${medaille(i + 1)} ${j.nom} <strong>${
+                d > 0 ? "+" + d : d
+              }</strong>`;
+            })
+            .join(" · ");
+
+          afficherMessage(
+            `<div style="display:flex;justify-content:space-between;align-items:center;gap:0.6rem">
+               <div style="display:flex;align-items:center;gap:0.6rem">
+                 ${avatarHTML(gag, 42)}
+                 <div>
+                   <div>🏆 <strong>${gag.nom}</strong>
+                     <span class="delta-badge ${dGag >= 0 ? "pos" : "neg"}">${
+              dGag >= 0 ? "+" + dGag : dGag
+            }</span></div>
+                   <div class="score-grand"><span id="score-anime">${
+                     avant[gagId]
+                   }</span> pts</div>
+                   ${autres ? `<div class="petit" style="margin-top:0.2rem">${autres}</div>` : ""}
+                 </div>
+               </div>
+               <button class="btn-discret" id="btn-annuler">↩️ Annuler</button>
+             </div>`,
+            "ok",
+            true
+          );
+          const elScoreAnime = document.getElementById("score-anime");
+          if (elScoreAnime)
+            animerNombre(elScoreAnime, apres[gagId], 950, avant[gagId]);
+          document
+            .getElementById("btn-annuler")
+            .addEventListener("click", () => {
+              annulerDernierePartie(g);
+              sauvegarder(donnees);
+              rendreMiniPodium();
+              afficherMessage("Dernière partie annulée. ↩️", "ok");
+            });
+        });
+
+      function rendreTout() {
+        const g = groupeActif(donnees);
+        const pret = g && g.joueurs.length >= 2;
+        elBarreGroupe.style.display = g ? "" : "none";
+        elZonePartie.style.display = pret ? "" : "none";
+        elCarteBloquee.style.display = pret ? "none" : "";
+
+        if (g) elNomGroupe.textContent = g.nom;
+
+        if (!g) {
+          elTexteBloque.textContent =
+            "Aucun groupe pour l'instant. Crée un groupe et ajoute des joueurs dans Organisation.";
+          return;
+        }
+        if (!pret) {
+          elTexteBloque.textContent =
+            "Il faut au moins 2 joueurs dans ce groupe pour lancer une partie.";
+          return;
+        }
+        rendreParticipants();
+        rendreOrdre();
+        rendreMiniPodium();
+      }
+
+      // Réglage du son (préférence mémorisée).
+      const elBtnSon = document.getElementById("btn-son");
+      function majSon() {
+        elBtnSon.textContent = sonActive() ? "🔊 Son" : "🔇 Muet";
+      }
+      elBtnSon.addEventListener("click", () => {
+        basculerSon();
+        majSon();
+      });
+      majSon();
+
+      rendreTout();
+    </script>
+  </body>
+</html>

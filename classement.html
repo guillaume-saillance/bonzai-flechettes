@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Classement — Bonzaï</title>
+    <link rel="icon" type="image/svg+xml" href="logo.svg" />
+    <!-- PWA : application installable + hors-ligne -->
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#c1121f" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Bonzaï" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="chrome">
+      <header class="app-bar"></header>
+      <nav class="tabbar"></nav>
+    </div>
+
+    <main>
+      <div class="barre-groupe" id="barre-groupe">
+        <span>Groupe&nbsp;: <strong id="nom-groupe-actif"></strong></span>
+      </div>
+
+      <section class="carte" id="carte-vide" style="display: none">
+        <p class="vide">Aucun groupe. Rends-toi sur Organisation pour en créer un.</p>
+      </section>
+
+      <div id="zone">
+        <div class="segments" id="segments">
+          <button data-vue="scores" class="actif">🏆 Scores</button>
+          <button data-vue="palmares">🎖️ Palmarès</button>
+        </div>
+
+        <!-- ============ SCORES ============ -->
+        <div id="vue-scores">
+          <section class="carte" id="carte-podium" style="display: none">
+            <h2>Podium</h2>
+            <div class="podium" id="podium"></div>
+          </section>
+
+          <section class="carte">
+            <h2>Période</h2>
+            <div class="champ">
+              <select id="mode-periode">
+                <option value="indeterminee">Depuis toujours (indéterminée)</option>
+                <option value="determinee">Période définie (du… au…)</option>
+              </select>
+            </div>
+            <div class="ligne periode-fin cachee" id="bloc-dates">
+              <div>
+                <label for="date-debut">Du</label>
+                <input type="date" id="date-debut" />
+              </div>
+              <div>
+                <label for="date-fin">Au (optionnel)</label>
+                <input type="date" id="date-fin" />
+              </div>
+            </div>
+          </section>
+
+          <section class="carte">
+            <div class="entete-section">
+              <h2>Classement</h2>
+              <span class="petit" id="nb-parties"></span>
+            </div>
+            <div id="classement"></div>
+            <p class="petit" style="margin-top: 0.9rem">
+              On peut gagner comme perdre des points&nbsp;; le gagnant est celui
+              qui a le plus haut score sur la période.
+              <a href="regles.html">Voir les règles →</a>
+            </p>
+          </section>
+
+          <section class="carte">
+            <h2>Dernières parties</h2>
+            <div id="historique"></div>
+          </section>
+
+          <div style="text-align: center; margin-bottom: 1rem">
+            <button class="btn-discret" id="btn-reset-scores">
+              Réinitialiser les scores du groupe
+            </button>
+          </div>
+        </div>
+
+        <!-- ============ PALMARÈS ============ -->
+        <div id="vue-palmares" style="display: none">
+          <section class="carte">
+            <h2>Synthèse du groupe</h2>
+            <div class="serie-info" id="synthese"></div>
+          </section>
+          <section class="carte">
+            <h2>Détail par joueur</h2>
+            <div id="detail-joueurs"></div>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <footer>Bonzaï 🌳 — vos données restent sur cet appareil.</footer>
+
+    <script src="app.js"></script>
+    <script src="ui.js"></script>
+    <script src="anim.js"></script>
+    <script src="onboarding.js"></script>
+    <script>
+      monterChrome("classement");
+      let donnees = chargerDonnees();
+      let vue = "scores";
+
+      const elClassement = document.getElementById("classement");
+      const elHistorique = document.getElementById("historique");
+      const elNbParties = document.getElementById("nb-parties");
+      const elMode = document.getElementById("mode-periode");
+      const elBlocDates = document.getElementById("bloc-dates");
+      const elDebut = document.getElementById("date-debut");
+      const elFin = document.getElementById("date-fin");
+      const elZone = document.getElementById("zone");
+      const elCarteVide = document.getElementById("carte-vide");
+      const elBarreGroupe = document.getElementById("barre-groupe");
+      const elNomGroupe = document.getElementById("nom-groupe-actif");
+      const elPodium = document.getElementById("podium");
+      const elCartePodium = document.getElementById("carte-podium");
+      const elSynthese = document.getElementById("synthese");
+      const elDetail = document.getElementById("detail-joueurs");
+
+      const medailles = ["🥇", "🥈", "🥉"];
+
+      document.querySelectorAll("#segments button").forEach((b) => {
+        b.addEventListener("click", () => {
+          vue = b.dataset.vue;
+          document
+            .querySelectorAll("#segments button")
+            .forEach((x) => x.classList.toggle("actif", x === b));
+          document.getElementById("vue-scores").style.display =
+            vue === "scores" ? "" : "none";
+          document.getElementById("vue-palmares").style.display =
+            vue === "palmares" ? "" : "none";
+          rendreTout();
+        });
+      });
+
+      function syncPeriode() {
+        const g = groupeActif(donnees);
+        if (!g) return;
+        elMode.value = g.periode.mode;
+        elDebut.value = g.periode.debut || "";
+        elFin.value = g.periode.fin || "";
+        elBlocDates.classList.toggle("cachee", g.periode.mode !== "determinee");
+      }
+
+      function majPeriode() {
+        const g = groupeActif(donnees);
+        if (!g) return;
+        g.periode.mode = elMode.value;
+        g.periode.debut = elDebut.value || null;
+        g.periode.fin = elFin.value || null;
+        elBlocDates.classList.toggle("cachee", elMode.value !== "determinee");
+        sauvegarder(donnees);
+        rendreTout();
+      }
+
+      // --- Podium illustré ---
+      function rendrePodium(cl) {
+        const top = cl.filter((j) => j.parties > 0).slice(0, 3);
+        if (top.length === 0) {
+          elCartePodium.style.display = "none";
+          return;
+        }
+        elCartePodium.style.display = "";
+        const marche = (j, cls, med) =>
+          j
+            ? `<div class="marche ${cls}">
+                 <div class="tete">${avatarHTML(j, 46)}
+                   <span class="nom">${j.nom}</span>
+                   <span class="pts">${j.score}</span></div>
+                 <div class="socle">${med}</div>
+               </div>`
+            : "";
+        elPodium.innerHTML =
+          marche(top[1], "argent", "🥈") +
+          marche(top[0], "or", "🥇") +
+          marche(top[2], "bronze", "🥉");
+      }
+
+      function rendreClassement() {
+        const g = groupeActif(donnees);
+        const cl = g ? calculerClassement(g) : [];
+        rendrePodium(cl);
+        if (cl.length === 0) {
+          elClassement.innerHTML =
+            '<p class="vide">Aucun joueur. Ajoute des joueurs et enregistre une partie.</p>';
+          return;
+        }
+        let html =
+          '<table><thead><tr><th class="rang">#</th><th>Joueur</th><th>V / Parties</th><th class="score">Score</th></tr></thead><tbody>';
+        cl.forEach((j, i) => {
+          const flamme =
+            j.serie >= 2 ? ` <span class="flamme">${j.serie}🔥</span>` : "";
+          html += `<tr class="${i < 3 ? "top" + (i + 1) : ""}">
+            <td class="rang">${medailles[i] || i + 1}</td>
+            <td><span class="cellule-joueur">${avatarHTML(j, 26)} ${j.nom}${flamme}</span></td>
+            <td class="petit">${j.victoires} / ${j.parties}</td>
+            <td class="score" data-score="${j.score}">${j.score}</td>
+          </tr>`;
+        });
+        html += "</tbody></table>";
+        elClassement.innerHTML = html;
+        elClassement
+          .querySelectorAll("td.score[data-score]")
+          .forEach((td) => animerNombre(td, +td.dataset.score, 600));
+      }
+
+      function rendreHistorique() {
+        const g = groupeActif(donnees);
+        const parties = g
+          ? partiesDeLaPeriode(g).sort(
+              (a, b) => new Date(b.date) - new Date(a.date)
+            )
+          : [];
+        elNbParties.textContent =
+          parties.length + (parties.length > 1 ? " parties" : " partie");
+        if (parties.length === 0) {
+          elHistorique.innerHTML =
+            '<p class="vide">Aucune partie sur cette période.</p>';
+          return;
+        }
+        elHistorique.innerHTML = parties
+          .slice(0, 15)
+          .map((p) => {
+            const ordre = ordreClassement(p)
+              .map((id) => joueurParId(g, id))
+              .filter(Boolean);
+            if (ordre.length === 0) return "";
+            const autres = ordre
+              .slice(1)
+              .map((j) => j.nom)
+              .join(" > ");
+            return `<div style="padding:0.5rem 0;border-bottom:1px solid var(--ligne)">
+              <strong>🏆 ${ordre[0].nom}</strong>
+              <span class="petit"> &gt; ${autres || "?"} · ${formaterDate(
+              p.date
+            )}</span></div>`;
+          })
+          .join("");
+      }
+
+      // --- Palmarès ---
+      function rendrePalmares() {
+        const g = groupeActif(donnees);
+        const cl = g ? calculerClassement(g) : [];
+        const joues = cl.filter((j) => j.parties > 0);
+
+        if (joues.length === 0) {
+          elSynthese.innerHTML =
+            '<p class="vide">Aucune partie jouée pour l\'instant.</p>';
+          elDetail.innerHTML = "";
+          return;
+        }
+
+        const maxPar = (cle) =>
+          cl.reduce((m, j) => (j[cle] > m[cle] ? j : m), cl[0]);
+        const plusV = maxPar("victoires");
+        const plusS = maxPar("meilleureSerie");
+        const plusT = cl.reduce(
+          (m, j) => (j.trophees.length > m.trophees.length ? j : m),
+          cl[0]
+        );
+
+        elSynthese.innerHTML = `
+          <div class="serie-bloc"><div class="v">${plusV.victoires}</div>
+            <div class="l">Victoires</div><div class="petit">${plusV.nom}</div></div>
+          <div class="serie-bloc"><div class="v">${plusS.meilleureSerie}🔥</div>
+            <div class="l">Meilleure série</div><div class="petit">${plusS.nom}</div></div>
+          <div class="serie-bloc"><div class="v">${plusT.trophees.length}</div>
+            <div class="l">Trophées</div><div class="petit">${plusT.nom}</div></div>`;
+
+        elDetail.innerHTML = cl
+          .map((j) => {
+            const mini = TROPHEES.map(
+              (t) =>
+                `<span class="troph-mini${
+                  j.trophees.includes(t.id) ? "" : " verrouille"
+                }" title="${t.nom}">${t.emoji}</span>`
+            ).join("");
+            const detail = TROPHEES.map((t) => {
+              const ok = j.trophees.includes(t.id);
+              return `<div class="trophee${ok ? "" : " verrouille"}">
+                <span class="em">${ok ? t.emoji : "🔒"}</span>
+                <div><div class="tn">${t.nom}</div><div class="td">${t.desc}</div></div>
+              </div>`;
+            }).join("");
+            return `<div class="joueur-palmares">
+              <div class="ligne-haut" role="button">
+                <span class="cellule-joueur">${avatarHTML(j, 30)} <strong>${j.nom}</strong></span>
+                <span class="petit">${j.victoires} V · ${j.meilleureSerie}🔥 record · +${j.bonusSerie} pts <span class="chevron">▸</span></span>
+              </div>
+              <div class="troph-ligne">${mini}</div>
+              <div class="troph-detail" style="display:none">
+                <div class="trophees-grille">${detail}</div>
+              </div>
+            </div>`;
+          })
+          .join("");
+
+        elDetail.querySelectorAll(".joueur-palmares").forEach((card) => {
+          const haut = card.querySelector(".ligne-haut");
+          const det = card.querySelector(".troph-detail");
+          const chev = card.querySelector(".chevron");
+          haut.style.cursor = "pointer";
+          haut.addEventListener("click", () => {
+            const ouvert = det.style.display !== "none";
+            det.style.display = ouvert ? "none" : "";
+            if (chev) chev.textContent = ouvert ? "▸" : "▾";
+          });
+        });
+      }
+
+      elMode.addEventListener("change", majPeriode);
+      elDebut.addEventListener("change", majPeriode);
+      elFin.addEventListener("change", majPeriode);
+
+      document
+        .getElementById("btn-reset-scores")
+        .addEventListener("click", () => {
+          const g = groupeActif(donnees);
+          if (!g) return;
+          if (
+            !confirm(
+              `Remettre tous les scores de « ${g.nom} » à zéro ? Les joueurs sont conservés, mais l'historique des parties est effacé.`
+            )
+          )
+            return;
+          g.parties = [];
+          g.periode = { mode: "indeterminee", debut: null, fin: null };
+          sauvegarder(donnees);
+          rendreTout();
+        });
+
+      function rendreTout() {
+        const g = groupeActif(donnees);
+        elBarreGroupe.style.display = g ? "" : "none";
+        elZone.style.display = g ? "" : "none";
+        elCarteVide.style.display = g ? "none" : "";
+        if (!g) return;
+        elNomGroupe.textContent = g.nom;
+        syncPeriode();
+        if (vue === "scores") {
+          rendreClassement();
+          rendreHistorique();
+        } else {
+          rendrePalmares();
+        }
+      }
+
+      rendreTout();
+    </script>
+  </body>
+</html>

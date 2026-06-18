@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aperçu logo — Bonzaï</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        margin: 0;
+        font-family: "Segoe UI", -apple-system, sans-serif;
+        background: #fdf0d5;
+        color: #003049;
+        text-align: center;
+        padding: 2rem 1rem;
+      }
+      h1 { font-weight: 800; letter-spacing: 1px; }
+      .rangee {
+        display: flex;
+        gap: 2rem;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: flex-end;
+        margin: 2rem 0;
+      }
+      .bloc { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
+      .bloc span { font-size: 0.8rem; color: #5d7180; }
+      img { display: block; }
+      .sombre { background: #003049; padding: 1rem; border-radius: 16px; }
+      .brand {
+        display: inline-flex; align-items: center; gap: 0.7rem;
+        background: rgba(253,240,213,.82); padding: 0.7rem 1.2rem;
+        border-radius: 14px; border: 1px solid rgba(0,48,73,.1);
+      }
+      .brand .nom { font-family: "Anton", sans-serif; font-weight: 400; letter-spacing: .5px; font-size: 1.5rem; line-height: .92; text-transform: uppercase; }
+      .brand .nom-suite { color: #c1121f; margin-left: .4em; letter-spacing: 1px; }
+      .brand .tag { font-size: 0.62rem; letter-spacing: 1px; text-transform: uppercase; font-weight: 700; color: #356a8c; text-align: left; }
+    </style>
+  </head>
+  <body>
+    <h1>🐂🎯 Logo Bonzaï — tête de taureau + fléchette</h1>
+
+    <div class="rangee">
+      <div class="bloc"><img src="logo.svg" width="220" height="220" /><span>220 px</span></div>
+      <div class="bloc"><img src="logo.svg" width="96" height="96" /><span>96 px</span></div>
+      <div class="bloc"><img src="logo.svg" width="40" height="40" /><span>40 px (header)</span></div>
+      <div class="bloc"><img src="logo.svg" width="20" height="20" /><span>20 px (favicon)</span></div>
+    </div>
+
+    <div class="rangee">
+      <div class="bloc sombre"><img src="logo.svg" width="120" height="120" /><span style="color:#b9c8bf">sur fond sombre</span></div>
+      <div class="bloc">
+        <div class="brand">
+          <img src="logo.svg" width="40" height="40" />
+          <div style="display:flex;flex-direction:column;line-height:1.05">
+            <span class="nom">Bonzaï<span class="nom-suite">Fléchettes</span></span>
+            <span class="tag">Qui sera le meilleur ?</span>
+          </div>
+        </div>
+        <span>en situation (barre d'app)</span>
+      </div>
+    </div>
+  </body>
+</html>
