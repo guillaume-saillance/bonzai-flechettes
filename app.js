@@ -13,8 +13,9 @@
 const STORAGE_KEY = "bonzai-flechettes";
 const ELO_DEPART = 1000; // score de départ de chaque joueur
 
-const K_GAIN = 40; // amplifie les points gagnés (on gagne gros)
-const K_PERTE = 24; // amplifie (moins) les points perdus (l'enjeu reste réel)
+const K_GAIN = 200; // amplifie les points gagnés (on gagne gros)
+const K_PERTE = 120; // amplifie (moins) les points perdus (l'enjeu reste réel)
+const SEUIL_GEANT = 750; // écart de score à battre pour le trophée « Tombeur de géant »
 
 // --- Gamification ----------------------------------------------------------
 
@@ -36,12 +37,12 @@ const TROPHEES = [
   { id: "serie10", emoji: "🌋", nom: "Incandescent", desc: "Gagner 10 parties d'affilée." },
   { id: "veteran", emoji: "🎖️", nom: "Vétéran", desc: "Disputer 10 parties." },
   { id: "champion", emoji: "👑", nom: "Champion", desc: "Remporter 10 victoires." },
-  { id: "geant", emoji: "🐉", nom: "Tombeur de géant", desc: "Battre un joueur 150 pts au-dessus de soi." },
+  { id: "geant", emoji: "🐉", nom: "Tombeur de géant", desc: "Battre un joueur 750 pts au-dessus de soi." },
   { id: "tablee", emoji: "🎲", nom: "Grosse tablée", desc: "Gagner une partie à 4 joueurs ou plus." },
 ];
 
 // Points bonus accordés au moment où l'on atteint une série de victoires.
-const BONUS_SERIE = { 3: 20, 5: 40, 10: 80 };
+const BONUS_SERIE = { 3: 50, 5: 100, 10: 500 };
 
 function tropheeParId(id) {
   return TROPHEES.find((t) => t.id === id);
@@ -272,10 +273,10 @@ function calculerStats(groupe) {
       deltas[id] = (perf >= 0 ? K_GAIN : K_PERTE) * perf;
     });
 
-    // Tombeur de géant : a-t-il battu un joueur 150+ pts au-dessus ?
+    // Tombeur de géant : a-t-il battu un joueur SEUIL_GEANT+ pts au-dessus ?
     const exploit = ordre
       .slice(1)
-      .some((id) => S[id].score - S[gagnant].score >= 150);
+      .some((id) => S[id].score - S[gagnant].score >= SEUIL_GEANT);
 
     ordre.forEach((id) => {
       S[id].score += deltas[id];

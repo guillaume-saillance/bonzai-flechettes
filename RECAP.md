@@ -65,13 +65,13 @@
 
 - Chaque joueur démarre à **1000 points**.
 - À chaque partie, chaque joueur est comparé à tous les autres selon l'ordre d'arrivée (série de duels, logique ELO).
-- **On peut gagner comme perdre des points** (l'enjeu !), mais une victoire rapporte plus qu'une défaite ne coûte (`K_GAIN = 40`, `K_PERTE = 24`).
-- Exemples (joueurs de même niveau) : duel **+20 / −12** · à 3 **+40 / 0 / −24** · à 4 **+60 / +20 / −12 / −36**.
+- **On peut gagner comme perdre des points** (l'enjeu !), mais une victoire rapporte plus qu'une défaite ne coûte (`K_GAIN = 200`, `K_PERTE = 120`).
+- Exemples (joueurs de même niveau) : duel **+100 / −60** · à 3 **+200 / 0 / −120** · à 4 **+300 / +100 / −60 / −180**.
 - Le gagnant est celui qui a **le plus haut score sur la période** choisie.
 
 ### Gamification
-- **Séries (score-streak)** : 3 victoires d'affilée → **+20 pts bonus**, 5 → **+40**, 10 → **+80**.
-- **8 trophées** : 🎯 Première victoire · 🔥 Série de 3 · 🔥 En feu (5) · 🌋 Incandescent (10) · 🎖️ Vétéran (10 parties) · 👑 Champion (10 victoires) · 🐉 Tombeur de géant (battre +150 pts au-dessus) · 🎲 Grosse tablée (4+ joueurs).
+- **Séries (score-streak)** : 3 victoires d'affilée → **+50 pts bonus**, 5 → **+100**, 10 → **+500**.
+- **8 trophées** : 🎯 Première victoire · 🔥 Série de 3 · 🔥 En feu (5) · 🌋 Incandescent (10) · 🎖️ Vétéran (10 parties) · 👑 Champion (10 victoires) · 🐉 Tombeur de géant (battre +750 pts au-dessus) · 🎲 Grosse tablée (4+ joueurs).
 - Tout est **recalculé depuis l'historique** (compatible annulation et périodes).
 
 ---
