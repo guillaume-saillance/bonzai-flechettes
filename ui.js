@@ -107,7 +107,7 @@ function construirePied() {
             `<button class="part" data-net="${r.id}" title="${r.titre}" aria-label="${r.titre}" style="background:${r.bg};color:${r.fg}"><svg viewBox="0 0 24 24" aria-hidden="true">${r.svg}</svg></button>`
         ).join("")}
       </div>
-      <span class="pied-note">Vos données restent sur cet appareil.</span>
+      <span class="pied-note">🔒 Vos données restent privées, sur cet appareil.</span>
     </div>`;
   pied
     .querySelectorAll(".part")
