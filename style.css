@@ -1,5 +1,5 @@
 /* ============================================================
-   Bonzaï — Direction artistique « Papaya / Brick »
+   Pilou — Direction artistique « Papaya / Brick »
    Palette : papaya-whip (fond), brick-red & molten-lava (accents),
    deep-space-blue (texte/structure), steel-blue (secondaire).
    Typo : Oswald (titres, sportif) + Inter (texte, lisible).
@@ -21,13 +21,25 @@
   --carte-bord: rgba(0, 48, 73, 0.12);
   --texte: #003049;
   --gris: #5d7180;
-  --rouge: #c1121f;
-  --rouge-fonce: #780000;
+
+  /* Couleur principale (thème) — modifiable par l'utilisateur. Tout ce qui
+     relève de la marque en dérive. Défaut : bleu nuit. JS ne change que
+     --primaire ; les tons foncé/ombre se recalculent via color-mix. */
+  --primaire: #0044cc;
+  --primaire-fonce: color-mix(in srgb, var(--primaire), #000 26%);
+  --primaire-ombre: color-mix(in srgb, var(--primaire) 26%, transparent);
+
+  /* « rouge » de marque = alias de la couleur principale. Seuls les éléments
+     danger/erreur gardent un rouge fixe (--danger). */
+  --rouge: var(--primaire);
+  --rouge-fonce: var(--primaire-fonce);
+  --danger: #c1121f;
+
   --bleu: #669bbc;
   --bleu-fonce: #356a8c;
   --ligne: rgba(0, 48, 73, 0.1);
   --ombre: 0 4px 18px rgba(0, 48, 73, 0.1);
-  --ombre-rouge: 0 8px 18px rgba(193, 18, 31, 0.26);
+  --ombre-rouge: var(--primaire-ombre);
   --rayon: 16px;
 
   /* Typographie */
@@ -145,7 +157,7 @@ body {
 .tab.actif {
   color: #fff;
   background: var(--rouge);
-  box-shadow: 0 4px 12px rgba(193, 18, 31, 0.28);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--primaire) 30%, transparent);
 }
 
 .tab.actif .ic {
@@ -292,7 +304,7 @@ button:active {
 
 .btn-danger {
   background: transparent;
-  color: var(--rouge);
+  color: var(--danger);
   font-size: 0.82rem;
   padding: 0.35rem 0.5rem;
 }
@@ -473,7 +485,7 @@ button:active {
 }
 
 .puce-x:hover {
-  color: var(--rouge);
+  color: var(--danger);
 }
 
 /* ---------- Ordre d'arrivée ---------- */
@@ -557,7 +569,7 @@ td.score {
 }
 
 tr.top1 td {
-  background: rgba(193, 18, 31, 0.05);
+  background: color-mix(in srgb, var(--primaire) 6%, transparent);
 }
 
 .medaille {
@@ -581,7 +593,7 @@ tr.top1 td {
 
 .message.erreur {
   background: rgba(193, 18, 31, 0.09);
-  color: var(--rouge);
+  color: var(--danger);
   border: 1px solid rgba(193, 18, 31, 0.25);
 }
 
@@ -967,12 +979,12 @@ footer {
 
 .delta-badge.neg {
   background: rgba(193, 18, 31, 0.12);
-  color: var(--rouge);
+  color: var(--danger);
 }
 
 /* Flamme de série dans le classement */
 .flamme {
-  color: var(--rouge);
+  color: var(--brick);
   font-weight: 700;
   font-size: 0.78rem;
   white-space: nowrap;
@@ -1335,4 +1347,26 @@ footer {
   .ob-carte {
     animation: none;
   }
+}
+
+/* ============================================================
+   Thème : sélecteur de couleur personnalisée
+   ============================================================ */
+
+input[type="color"] {
+  width: 52px;
+  height: 38px;
+  padding: 2px;
+  border: 1px solid var(--carte-bord);
+  border-radius: 10px;
+  background: var(--carte);
+  cursor: pointer;
+}
+
+input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: 6px;
 }

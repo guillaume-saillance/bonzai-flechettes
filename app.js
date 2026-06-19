@@ -1,5 +1,5 @@
 /*
- * Bonzaï : Qui est le meilleur aux fléchettes ?
+ * Pilou : Qui osera défier Xavier ?
  * Logique partagée : stockage local, groupes, classement gamifié.
  *
  * Modèle de score « ELO multijoueur » : à chaque partie, les joueurs sont
@@ -384,7 +384,7 @@ function importerDonneesJSON(texte) {
   if (!d || !Array.isArray(d.groupes)) {
     return {
       ok: false,
-      message: "Ce fichier n'est pas une sauvegarde Bonzaï.",
+      message: "Ce fichier n'est pas une sauvegarde Pilou.",
     };
   }
   d.groupes.forEach(normaliserGroupe);

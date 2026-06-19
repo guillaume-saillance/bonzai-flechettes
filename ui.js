@@ -19,14 +19,52 @@ function avatarHTML(joueur, px = 28) {
   return `<span class="avatar" style="background:${couleur};width:${px}px;height:${px}px;font-size:${fs}px">${contenu}</span>`;
 }
 
+// --- Thème (couleur principale) --------------------------------------------
+// La couleur de marque est pilotée par la variable CSS --primaire ; tout le
+// reste en dérive. On ne stocke et n'applique que cette couleur.
+const THEME_KEY = "pilou-theme";
+const THEME_DEFAUT = "#0044cc";
+const THEMES = [
+  { id: "bleu", nom: "Bleu roi", couleur: "#0044cc" },
+  { id: "rouge", nom: "Rouge brique", couleur: "#c1121f" },
+  { id: "vert", nom: "Vert sapin", couleur: "#0f7d53" },
+  { id: "turquoise", nom: "Turquoise", couleur: "#2a9d8f" },
+  { id: "violet", nom: "Violet", couleur: "#6a4c93" },
+  { id: "orange", nom: "Orange", couleur: "#d98324" },
+];
+
+function couleurTheme() {
+  try {
+    return localStorage.getItem(THEME_KEY) || THEME_DEFAUT;
+  } catch (e) {
+    return THEME_DEFAUT;
+  }
+}
+
+function appliquerTheme(couleur) {
+  document.documentElement.style.setProperty("--primaire", couleur);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute("content", couleur);
+}
+
+function definirTheme(couleur) {
+  try {
+    localStorage.setItem(THEME_KEY, couleur);
+  } catch (e) {}
+  appliquerTheme(couleur);
+}
+
+// Applique le thème enregistré dès le chargement de ui.js.
+appliquerTheme(couleurTheme());
+
 function monterChrome(pageActive) {
   const header = document.querySelector("header.app-bar");
   if (header) {
     header.innerHTML = `
-      <img class="logo" src="logo.svg" alt="Bonzaï" width="40" height="40" />
+      <img class="logo" src="logo.svg" alt="Pilou" width="40" height="40" />
       <div class="wordmark">
-        <h1 class="nom">Bonzaï<span class="nom-suite">Fléchettes</span></h1>
-        <span class="tag">Qui sera le meilleur ?</span>
+        <h1 class="nom">Pilou</h1>
+        <span class="tag">Qui osera défier Xavier ?</span>
       </div>`;
   }
 
@@ -48,8 +86,8 @@ function monterChrome(pageActive) {
 // Le repli ne sert qu'en ouverture locale « file:// ».
 const URL_PARTAGE = location.protocol.startsWith("http")
   ? location.origin + location.pathname.replace(/[^/]*$/, "")
-  : "https://bonzai-flechettes.app";
-const TEXTE_PARTAGE = "Bonzaï Fléchettes — Qui sera le meilleur aux fléchettes ? 🎯";
+  : "https://pilou.saillance.cc/";
+const TEXTE_PARTAGE = "Pilou — Qui osera défier Xavier ? 🎯";
 
 // Logos officiels (chemins SVG, viewBox 0 0 24 24). bg = fond du bouton,
 // fg = couleur du logo.
@@ -91,7 +129,7 @@ const RESEAUX = [
 function construirePied() {
   const pied = document.querySelector("footer");
   if (!pied) return;
-  const sujet = encodeURIComponent("Idée pour Bonzaï Fléchettes");
+  const sujet = encodeURIComponent("Idée pour Pilou");
   const corps = encodeURIComponent(
     "Bonjour,\n\nJ'ai une idée pour améliorer l'application :\n\n"
   );

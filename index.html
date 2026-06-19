@@ -3,15 +3,25 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>Organisation — Bonzaï</title>
+    <title>Organisation — Pilou</title>
     <link rel="icon" type="image/svg+xml" href="logo.svg" />
     <!-- PWA : application installable + hors-ligne -->
     <link rel="manifest" href="manifest.json" />
-    <meta name="theme-color" content="#c1121f" />
+    <meta name="theme-color" content="#0044cc" />
+    <script>
+      try {
+        var t = localStorage.getItem("pilou-theme");
+        if (t) {
+          document.documentElement.style.setProperty("--primaire", t);
+          var m = document.querySelector('meta[name="theme-color"]');
+          if (m) m.setAttribute("content", t);
+        }
+      } catch (e) {}
+    </script>
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Bonzaï" />
+    <meta name="apple-mobile-web-app-title" content="Pilou" />
     <meta name="mobile-web-app-capable" content="yes" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -94,6 +104,22 @@
 
       <!-- ============ PERSONNALISER ============ -->
       <div id="vue-perso" style="display: none">
+        <section class="carte" id="carte-theme">
+          <h2>🎨 Thème de l'application</h2>
+          <p class="petit">
+            Choisis la couleur principale de Pilou — elle s'applique partout,
+            tout de suite.
+          </p>
+          <div class="swatches" id="themes"></div>
+          <div class="champ" style="margin-top: 0.8rem">
+            <label for="theme-perso">Couleur personnalisée</label>
+            <div class="ligne" style="align-items: center; gap: 0.6rem">
+              <input type="color" id="theme-perso" value="#0044cc" />
+              <span class="petit" id="theme-actuel"></span>
+            </div>
+          </div>
+        </section>
+
         <section class="carte" id="perso-bloquee" style="display: none">
           <p class="vide" id="perso-texte-bloque"></p>
         </section>
@@ -120,7 +146,7 @@
       </div>
     </main>
 
-    <footer>Bonzaï 🌳 — vos données restent sur cet appareil.</footer>
+    <footer>Pilou 🌳 — vos données restent sur cet appareil.</footer>
 
     <script src="app.js"></script>
     <script src="ui.js"></script>
@@ -183,7 +209,7 @@
         elGrille.innerHTML = "";
         elAideGroupe.textContent =
           donnees.groupes.length === 0
-            ? "Crée ton premier groupe (ex : Famille, Soirée fléchettes…) pour commencer."
+            ? "Crée ton premier groupe (ex : Famille, Soirée jeux…) pour commencer."
             : "Touche une carte pour choisir le groupe actif.";
 
         donnees.groupes.forEach((g) => {
@@ -436,6 +462,40 @@
         };
         lecteur.readAsText(fichier);
       });
+
+      // --- Thème de l'application ---
+      const elThemes = document.getElementById("themes");
+      const elThemePerso = document.getElementById("theme-perso");
+      const elThemeActuel = document.getElementById("theme-actuel");
+
+      function rendreThemes() {
+        const actuelle = couleurTheme().toLowerCase();
+        elThemes.innerHTML = "";
+        THEMES.forEach((t) => {
+          const sw = document.createElement("div");
+          sw.className =
+            "swatch" + (t.couleur.toLowerCase() === actuelle ? " actif" : "");
+          sw.style.background = t.couleur;
+          sw.title = t.nom;
+          sw.addEventListener("click", () => {
+            definirTheme(t.couleur);
+            rendreThemes();
+          });
+          elThemes.appendChild(sw);
+        });
+        if (/^#[0-9a-f]{6}$/.test(actuelle)) elThemePerso.value = actuelle;
+        elThemeActuel.textContent = actuelle.toUpperCase();
+      }
+
+      elThemePerso.addEventListener("input", () => {
+        definirTheme(elThemePerso.value);
+        elThemeActuel.textContent = elThemePerso.value.toUpperCase();
+        elThemes
+          .querySelectorAll(".swatch")
+          .forEach((s) => s.classList.remove("actif"));
+      });
+
+      rendreThemes();
 
       rendreTout();
     </script>

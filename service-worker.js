@@ -1,5 +1,5 @@
 /*
- * Service worker de Bonzaï Fléchettes.
+ * Service worker de Pilou.
  * Rend l'application installable et utilisable hors-ligne en mettant ses
  * fichiers en cache. Stratégie : « stale-while-revalidate » — on répond
  * immédiatement avec la version en cache (rapide, marche hors-ligne) tout en
@@ -9,7 +9,7 @@
  * fichiers, sinon les anciennes versions resteront servies depuis le cache.
  */
 
-const CACHE = "bonzai-v6";
+const CACHE = "pilou-v1";
 
 // Fichiers de l'« app shell » préchargés dès l'installation.
 const ASSETS = [

@@ -3,15 +3,25 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>Règles — Bonzaï</title>
+    <title>Règles — Pilou</title>
     <link rel="icon" type="image/svg+xml" href="logo.svg" />
     <!-- PWA : application installable + hors-ligne -->
     <link rel="manifest" href="manifest.json" />
-    <meta name="theme-color" content="#c1121f" />
+    <meta name="theme-color" content="#0044cc" />
+    <script>
+      try {
+        var t = localStorage.getItem("pilou-theme");
+        if (t) {
+          document.documentElement.style.setProperty("--primaire", t);
+          var m = document.querySelector('meta[name="theme-color"]');
+          if (m) m.setAttribute("content", t);
+        }
+      } catch (e) {}
+    </script>
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Bonzaï" />
+    <meta name="apple-mobile-web-app-title" content="Pilou" />
     <meta name="mobile-web-app-capable" content="yes" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -31,9 +41,10 @@
       <section class="carte">
         <h2>🎯 Le but du jeu</h2>
         <p>
-          Bonzaï détermine <strong>qui est le meilleur aux fléchettes</strong>
-          dans un groupe (famille, amis, collègues…). Vous jouez vos parties
-          dans la vraie vie&nbsp;; ici, vous notez simplement
+          Pilou est dédiée à un défi&nbsp;: <strong>détrôner Xavier</strong>,
+          grand compétiteur devant l'éternel, à de multiples jeux. Réunissez
+          votre groupe (famille, amis, collègues…) et jouez vos parties dans
+          la vraie vie&nbsp;; ici, vous notez simplement
           <strong>qui a gagné</strong>. L'application tient le score et le
           classement à votre place.
         </p>
@@ -128,7 +139,7 @@
       </section>
     </main>
 
-    <footer>Bonzaï 🌳 — vos données restent sur cet appareil.</footer>
+    <footer>Pilou 🌳 — vos données restent sur cet appareil.</footer>
 
     <script src="ui.js"></script>
     <script src="onboarding.js"></script>

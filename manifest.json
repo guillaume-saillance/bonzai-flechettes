@@ -1,7 +1,7 @@
 {
-  "name": "Bonzaï Fléchettes",
-  "short_name": "Bonzaï",
-  "description": "Qui sera le meilleur aux fléchettes ? Score, classement et trophées pour vos parties entre amis.",
+  "name": "Pilou",
+  "short_name": "Pilou",
+  "description": "Qui osera défier Xavier ? L'appli pour défier le grand compétiteur à de multiples jeux : scores, classement et trophées.",
   "lang": "fr",
   "dir": "ltr",
   "start_url": "./index.html",
@@ -9,7 +9,7 @@
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#fdf0d5",
-  "theme_color": "#c1121f",
+  "theme_color": "#0044cc",
   "categories": ["games", "sports"],
   "icons": [
     {

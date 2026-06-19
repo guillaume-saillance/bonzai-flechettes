@@ -1,5 +1,5 @@
 /*
- * Onboarding de Bonzaï Fléchettes.
+ * Onboarding de Pilou.
  * S'affiche automatiquement au tout premier lancement pour expliquer comment
  * installer l'application sur l'appareil et sauvegarder ses données.
  * Re-consultable ensuite via openOnboarding() (bouton sur la page Règles).
@@ -65,7 +65,7 @@ function blocInstall() {
     <button class="btn-principal" type="button" data-install-natif hidden style="margin-bottom:.7rem">📲 Installer l'application</button>
     <ol class="ob-liste">
       <li>Clique l'icône d'<strong>installation</strong> <span class="ob-ic">⊕</span> à droite de la barre d'adresse.</li>
-      <li>Ou&nbsp;: menu <strong>⋮</strong> → <strong>«&nbsp;Installer Bonzaï Fléchettes&nbsp;»</strong>.</li>
+      <li>Ou&nbsp;: menu <strong>⋮</strong> → <strong>«&nbsp;Installer Pilou&nbsp;»</strong>.</li>
     </ol>
     <p class="ob-note">Disponible sur Chrome, Edge… (pas sur Safari/Firefox ordinateur).</p>`;
 }
@@ -73,10 +73,10 @@ function blocInstall() {
 const ONBOARDING_ETAPES = [
   {
     icone: "🎯",
-    titre: "Bienvenue sur Bonzaï&nbsp;!",
+    titre: "Bienvenue sur Pilou&nbsp;!",
     corps: () => `
-      <p>L'appli qui désigne <strong>le meilleur aux fléchettes</strong> de votre groupe.</p>
-      <p>Vous jouez dans la vraie vie&nbsp;; ici, vous notez juste qui gagne. Bonzaï tient les <strong>scores</strong>, le <strong>classement</strong> et les <strong>trophées</strong> à votre place.</p>`,
+      <p>Pilou n'a qu'un seul but&nbsp;: <strong>détrôner Xavier</strong>, grand compétiteur devant l'éternel, à de multiples jeux.</p>
+      <p>Vous jouez dans la vraie vie&nbsp;; ici, vous notez juste qui gagne. Pilou tient les <strong>scores</strong>, le <strong>classement</strong> et les <strong>trophées</strong> à votre place.</p>`,
   },
   {
     icone: "📲",
