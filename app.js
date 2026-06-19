@@ -14,8 +14,24 @@ const STORAGE_KEY = "bonzai-flechettes";
 const ELO_DEPART = 1000; // score de départ de chaque joueur
 
 const K_GAIN = 200; // amplifie les points gagnés (on gagne gros)
-const K_PERTE = 120; // amplifie (moins) les points perdus (l'enjeu reste réel)
-const SEUIL_GEANT = 750; // écart de score à battre pour le trophée « Tombeur de géant »
+const K_PERTE = 50; // amplifie (bien moins) les points perdus (défaites douces)
+const SEUIL_GEANT = 500; // écart de score à battre pour le trophée « Tombeur de géant »
+
+// --- Jeux (catalogue global) -----------------------------------------------
+
+// Catalogue proposé par défaut. Tous ces jeux partagent la même règle : on
+// joue dans la vraie vie, l'app note simplement qui gagne et qui perd des
+// points. L'utilisateur peut en retirer ou ajouter les siens.
+const JEUX_PREDEFINIS = [
+  { nom: "Fléchettes", embleme: "🎯" },
+  { nom: "Pétanque", embleme: "⚪" },
+  { nom: "Cornhole", embleme: "🎴" },
+  { nom: "Babyfoot", embleme: "⚽" },
+  { nom: "Ping-pong", embleme: "🏓" },
+  { nom: "Billard", embleme: "🎱" },
+  { nom: "Cartes", embleme: "🃏" },
+  { nom: "Flipper", embleme: "🕹️" },
+];
 
 // --- Gamification ----------------------------------------------------------
 
@@ -37,7 +53,7 @@ const TROPHEES = [
   { id: "serie10", emoji: "🌋", nom: "Incandescent", desc: "Gagner 10 parties d'affilée." },
   { id: "veteran", emoji: "🎖️", nom: "Vétéran", desc: "Disputer 10 parties." },
   { id: "champion", emoji: "👑", nom: "Champion", desc: "Remporter 10 victoires." },
-  { id: "geant", emoji: "🐉", nom: "Tombeur de géant", desc: "Battre un joueur 750 pts au-dessus de soi." },
+  { id: "geant", emoji: "🐉", nom: "Tombeur de géant", desc: "Battre un joueur 500 pts au-dessus de soi." },
   { id: "tablee", emoji: "🎲", nom: "Grosse tablée", desc: "Gagner une partie à 4 joueurs ou plus." },
 ];
 
@@ -73,9 +89,38 @@ function normaliserGroupe(g) {
   return g;
 }
 
+// Instancie le catalogue par défaut avec des identifiants uniques.
+function jeuxPredefinis() {
+  return JEUX_PREDEFINIS.map((j) => ({
+    id: nouvelId(),
+    nom: j.nom,
+    embleme: j.embleme,
+  }));
+}
+
+// Garantit que les données ont un catalogue de jeux et un jeu actif, et que
+// chaque ancienne partie est rattachée à un jeu (les fléchettes par défaut).
+// Sert aussi de migration douce pour les sauvegardes d'avant le multi-jeux.
+function assurerJeux(d) {
+  if (!Array.isArray(d.jeux) || d.jeux.length === 0) d.jeux = jeuxPredefinis();
+  d.jeux.forEach((j) => {
+    if (!j.id) j.id = nouvelId();
+    if (!j.embleme) j.embleme = "🎮";
+  });
+  const defautId = d.jeux[0].id;
+  (d.groupes || []).forEach((g) => {
+    (g.parties || []).forEach((p) => {
+      if (!p.jeuId) p.jeuId = defautId;
+    });
+  });
+  if (!d.jeuActifId || !d.jeux.some((j) => j.id === d.jeuActifId))
+    d.jeuActifId = defautId;
+  return d;
+}
+
 function chargerDonnees() {
   const brut = localStorage.getItem(STORAGE_KEY);
-  if (!brut) return { groupes: [], groupeActifId: null };
+  if (!brut) return assurerJeux({ groupes: [], groupeActifId: null });
   try {
     const d = JSON.parse(brut);
     // Migration de l'ancien format (sans groupes) vers le nouveau.
@@ -87,15 +132,15 @@ function chargerDonnees() {
         parties: d.parties || [],
         periode: d.periode || periodeDefaut(),
       });
-      return { groupes: [g], groupeActifId: g.id };
+      return assurerJeux({ groupes: [g], groupeActifId: g.id });
     }
     d.groupes = d.groupes || [];
     d.groupes.forEach(normaliserGroupe);
     d.groupeActifId =
       d.groupeActifId || (d.groupes[0] && d.groupes[0].id) || null;
-    return d;
+    return assurerJeux(d);
   } catch (e) {
-    return { groupes: [], groupeActifId: null };
+    return assurerJeux({ groupes: [], groupeActifId: null });
   }
 }
 
@@ -146,6 +191,51 @@ function definirGroupeActif(donnees, id) {
   donnees.groupeActifId = id;
 }
 
+// --- Jeux (catalogue global) -----------------------------------------------
+
+function creerJeu(donnees, nom, embleme) {
+  nom = (nom || "").trim();
+  if (!nom) return null;
+  const existe = donnees.jeux.some(
+    (j) => j.nom.toLowerCase() === nom.toLowerCase()
+  );
+  if (existe) return null;
+  const jeu = { id: nouvelId(), nom, embleme: (embleme || "").trim() || "🎮" };
+  donnees.jeux.push(jeu);
+  return jeu;
+}
+
+function renommerJeu(jeu, nom, embleme) {
+  nom = (nom || "").trim();
+  if (nom) jeu.nom = nom;
+  if (embleme !== undefined) jeu.embleme = (embleme || "").trim() || "🎮";
+  return true;
+}
+
+// Un jeu est « utilisé » dès qu'une partie y fait référence (tous groupes
+// confondus) : on refuse alors sa suppression pour ne pas orpheliner l'historique.
+function jeuEstUtilise(donnees, id) {
+  return donnees.groupes.some((g) => g.parties.some((p) => p.jeuId === id));
+}
+
+function supprimerJeu(donnees, id) {
+  donnees.jeux = donnees.jeux.filter((j) => j.id !== id);
+  if (donnees.jeuActifId === id)
+    donnees.jeuActifId = donnees.jeux[0] ? donnees.jeux[0].id : null;
+}
+
+function jeuActif(donnees) {
+  return donnees.jeux.find((j) => j.id === donnees.jeuActifId) || null;
+}
+
+function definirJeuActif(donnees, id) {
+  donnees.jeuActifId = id;
+}
+
+function jeuParId(donnees, id) {
+  return donnees.jeux.find((j) => j.id === id);
+}
+
 // --- Joueurs (dans un groupe) ----------------------------------------------
 
 function ajouterJoueur(groupe, nom) {
@@ -182,11 +272,13 @@ function joueurParId(groupe, id) {
 // --- Parties (dans un groupe) ----------------------------------------------
 
 // `classement` : tableau des ids ordonnés du 1er (vainqueur) au dernier.
-function enregistrerPartie(groupe, classement) {
+// `jeuId` : le jeu auquel s'est jouée la partie (catalogue global).
+function enregistrerPartie(groupe, classement, jeuId) {
   if (!classement || classement.length < 2) return null;
   const partie = {
     id: nouvelId(),
     date: new Date().toISOString(),
+    jeuId: jeuId || null,
     classement: [...classement],
     participants: [...classement], // compat affichage
     gagnantId: classement[0],
@@ -237,8 +329,12 @@ function partiesDeLaPeriode(groupe) {
  * Score : pour chaque partie, on compare chaque joueur à tous les autres selon
  * l'ordre d'arrivée (duels). Performance positive → gain (×K_GAIN), négative →
  * perte (×K_PERTE). Une série de victoires rapporte des points bonus.
+ *
+ * `jeuId` (optionnel) : si fourni, on ne tient compte que des parties de ce
+ * jeu → classement propre à un jeu. Sans lui, c'est le classement Général
+ * (tous jeux confondus).
  */
-function calculerStats(groupe) {
+function calculerStats(groupe, jeuId) {
   const S = {};
   groupe.joueurs.forEach((j) => {
     S[j.id] = {
@@ -252,9 +348,10 @@ function calculerStats(groupe) {
     };
   });
 
-  const parties = partiesDeLaPeriode(groupe).sort(
+  let parties = partiesDeLaPeriode(groupe).sort(
     (a, b) => new Date(a.date) - new Date(b.date)
   );
+  if (jeuId) parties = parties.filter((p) => p.jeuId === jeuId);
 
   parties.forEach((partie) => {
     const ordre = ordreClassement(partie).filter((id) => S[id]);
@@ -309,8 +406,9 @@ function calculerStats(groupe) {
 }
 
 // Classement trié du groupe, enrichi des données de gamification.
-function calculerClassement(groupe) {
-  const S = calculerStats(groupe);
+// `jeuId` (optionnel) : classement propre à un jeu, sinon Général.
+function calculerClassement(groupe, jeuId) {
+  const S = calculerStats(groupe, jeuId);
   return groupe.joueurs
     .map((j) => ({
       id: j.id,
@@ -388,6 +486,7 @@ function importerDonneesJSON(texte) {
     };
   }
   d.groupes.forEach(normaliserGroupe);
+  assurerJeux(d);
   if (!d.groupeActifId && d.groupes[0]) d.groupeActifId = d.groupes[0].id;
   sauvegarder(d);
   return { ok: true, nbGroupes: d.groupes.length };

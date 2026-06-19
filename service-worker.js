@@ -9,7 +9,7 @@
  * fichiers, sinon les anciennes versions resteront servies depuis le cache.
  */
 
-const CACHE = "pilou-v1";
+const CACHE = "pilou-v3";
 
 // Fichiers de l'« app shell » préchargés dès l'installation.
 const ASSETS = [
@@ -23,7 +23,7 @@ const ASSETS = [
   "./ui.js",
   "./anim.js",
   "./onboarding.js",
-  "./logo.svg",
+  "./logo.png",
   "./icone-192.png",
   "./icone-512.png",
   "./apple-touch-icon.png",

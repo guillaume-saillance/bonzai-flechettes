@@ -90,7 +90,7 @@ const ONBOARDING_ETAPES = [
     titre: "Ne perds jamais tes scores",
     corps: () => `
       <p>Tes données restent <strong>sur cet appareil</strong>. Pense à les sauvegarder de temps en temps&nbsp;!</p>
-      <p>Dans <strong>Organisation → Gérer → 💾 Sauvegarde</strong>&nbsp;:</p>
+      <p>Dans <strong>Jeux → Gérer → 💾 Sauvegarde</strong>&nbsp;:</p>
       <ul class="ob-liste">
         <li><strong>Exporter</strong>&nbsp;: télécharge un fichier de secours.</li>
         <li><strong>Importer</strong>&nbsp;: restaure, ou transfère vers un autre appareil.</li>

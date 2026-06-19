@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>Organisation — Pilou</title>
-    <link rel="icon" type="image/svg+xml" href="logo.svg" />
+    <title>Jeux — Pilou</title>
+    <link rel="icon" type="image/png" href="logo.png" />
     <!-- PWA : application installable + hors-ligne -->
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#0044cc" />
@@ -38,13 +38,39 @@
     </div>
 
     <main>
+      <div class="barre-groupe" id="barre-groupe-page" style="display: none">
+        <span>Groupe&nbsp;: <strong id="nom-groupe-page"></strong></span>
+        <button class="btn-discret" id="btn-changer-groupe" style="margin-left: auto">
+          Changer
+        </button>
+      </div>
+
+      <div class="alerte" id="alerte-jouer" style="display: none">
+        <span id="alerte-jouer-txt"></span>
+        <button class="btn-secondaire" id="alerte-jouer-gerer" style="flex: 0 0 auto">
+          ⚙️ Gérer
+        </button>
+      </div>
+
       <div class="segments" id="segments">
-        <button data-vue="gerer" class="actif">⚙️ Gérer</button>
+        <button data-vue="selection" class="actif">🃏 Sélectionner</button>
+        <button data-vue="gerer">⚙️ Gérer</button>
         <button data-vue="perso">🎨 Personnaliser</button>
       </div>
 
+      <!-- ============ SÉLECTIONNER ============ -->
+      <div id="vue-selection">
+        <section class="carte">
+          <h2>🎮 À quel jeu joue-t-on&nbsp;?</h2>
+          <p class="petit" id="aide-jeu">
+            Touche un jeu&nbsp;: c'est à lui que se jouera la prochaine partie.
+          </p>
+          <div class="groupes-grille" id="jeux-grille"></div>
+        </section>
+      </div>
+
       <!-- ============ GÉRER ============ -->
-      <div id="vue-gerer">
+      <div id="vue-gerer" style="display: none">
         <section class="carte">
           <h2>Mes groupes</h2>
           <p class="petit" id="aide-groupe"></p>
@@ -155,7 +181,7 @@
       monterChrome("organisation");
       let donnees = chargerDonnees();
       let selId = null;
-      let vue = "gerer";
+      let vue = "selection";
 
       const elMessage = document.getElementById("message");
       const elListeJoueurs = document.getElementById("liste-joueurs");
@@ -166,6 +192,12 @@
       const elCarteCta = document.getElementById("carte-cta");
       const elNomGroupeJoueurs = document.getElementById("nom-groupe-joueurs");
 
+      const elBarrePage = document.getElementById("barre-groupe-page");
+      const elNomGroupePage = document.getElementById("nom-groupe-page");
+      const elAlerteJouer = document.getElementById("alerte-jouer");
+      const elAlerteJouerTxt = document.getElementById("alerte-jouer-txt");
+      const elVueSelection = document.getElementById("vue-selection");
+      const elJeuxGrille = document.getElementById("jeux-grille");
       const elVueGerer = document.getElementById("vue-gerer");
       const elVuePerso = document.getElementById("vue-perso");
       const elPersoBloquee = document.getElementById("perso-bloquee");
@@ -191,11 +223,41 @@
           document
             .querySelectorAll("#segments button")
             .forEach((x) => x.classList.toggle("actif", x === b));
+          elVueSelection.style.display = vue === "selection" ? "" : "none";
           elVueGerer.style.display = vue === "gerer" ? "" : "none";
           elVuePerso.style.display = vue === "perso" ? "" : "none";
           rendreTout();
         });
       });
+
+      // Saut direct vers un sous-onglet (réutilise le gestionnaire des segments).
+      function allerVue(v) {
+        const btn = document.querySelector(`#segments button[data-vue="${v}"]`);
+        if (btn) btn.click();
+      }
+      document
+        .getElementById("btn-changer-groupe")
+        .addEventListener("click", () => allerVue("gerer"));
+      document
+        .getElementById("alerte-jouer-gerer")
+        .addEventListener("click", () => {
+          elAlerteJouer.style.display = "none";
+          allerVue("gerer");
+        });
+
+      // Clic « Jouer » (carte ou bandeau du bas) : si le groupe n'est pas prêt,
+      // on bloque et on affiche une alerte en haut ; sinon le lien suit vers Partie.
+      function tenterJouer(e) {
+        const g = groupeActif(donnees);
+        const pret = g && g.joueurs.length >= 2;
+        if (pret) return;
+        if (e) e.preventDefault();
+        elAlerteJouerTxt.textContent = !g
+          ? "Choisis d'abord ton groupe pour pouvoir jouer."
+          : "Ajoute au moins 2 joueurs à ce groupe pour pouvoir jouer.";
+        elAlerteJouer.style.display = "";
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
 
       // --- GÉRER : groupes ---
       function creerGroupeViaPrompt() {
@@ -395,7 +457,122 @@
         });
       }
 
+      // --- SÉLECTIONNER : jeux ---
+      function rendreJeux() {
+        const g = groupeActif(donnees);
+        elJeuxGrille.innerHTML = "";
+
+        donnees.jeux.forEach((jeu) => {
+          const actif = jeu.id === donnees.jeuActifId;
+          const nb = g
+            ? g.parties.filter((p) => p.jeuId === jeu.id).length
+            : 0;
+          const carte = document.createElement("div");
+          carte.className = "groupe-carte" + (actif ? " actif" : "");
+          carte.innerHTML = `
+            <div class="groupe-actions">
+              <button class="icone" data-action="renommer" title="Modifier">✏️</button>
+              <button class="icone" data-action="supprimer" title="Supprimer">🗑️</button>
+            </div>
+            <div class="jeu-embleme">${jeu.embleme || "🎮"}</div>
+            <div class="groupe-nom">${jeu.nom}</div>
+            <div class="petit">${nb} partie${nb > 1 ? "s" : ""}</div>
+            ${
+              actif
+                ? '<a class="btn-jouer" href="partie.html">Jouer</a>'
+                : ""
+            }`;
+
+          carte.addEventListener("click", () => {
+            definirJeuActif(donnees, jeu.id);
+            sauvegarder(donnees);
+            rendreJeux();
+          });
+          // Le bouton « Jouer » lance la partie (ou alerte si rien n'est prêt)
+          // sans re-déclencher la sélection de la carte.
+          if (actif) {
+            const btnJouer = carte.querySelector(".btn-jouer");
+            if (btnJouer)
+              btnJouer.addEventListener("click", (e) => {
+                e.stopPropagation();
+                tenterJouer(e);
+              });
+          }
+          carte
+            .querySelector('[data-action="renommer"]')
+            .addEventListener("click", (e) => {
+              e.stopPropagation();
+              const nom = prompt("Nom du jeu :", jeu.nom);
+              if (nom === null) return;
+              const emo = prompt(
+                "Emoji du jeu (laisser vide = 🎮) :",
+                jeu.embleme || ""
+              );
+              if (emo === null) return;
+              renommerJeu(jeu, nom, emo);
+              sauvegarder(donnees);
+              rendreJeux();
+            });
+          carte
+            .querySelector('[data-action="supprimer"]')
+            .addEventListener("click", (e) => {
+              e.stopPropagation();
+              if (jeuEstUtilise(donnees, jeu.id)) {
+                alert(
+                  `Impossible de supprimer « ${jeu.nom} » : des parties y sont déjà enregistrées.`
+                );
+                return;
+              }
+              if (donnees.jeux.length <= 1) {
+                alert("Il faut garder au moins un jeu.");
+                return;
+              }
+              if (!confirm(`Supprimer le jeu « ${jeu.nom} » ?`)) return;
+              supprimerJeu(donnees, jeu.id);
+              sauvegarder(donnees);
+              rendreJeux();
+            });
+          elJeuxGrille.appendChild(carte);
+        });
+
+        const ajout = document.createElement("button");
+        ajout.className = "groupe-carte ajout";
+        ajout.innerHTML = "<span>＋</span>Ajouter mon jeu";
+        ajout.addEventListener("click", () => {
+          const nom = prompt("Nom du nouveau jeu (ex : Mölkky, Beer-pong…)");
+          if (nom === null) return;
+          const emo = prompt("Emoji du jeu (optionnel) :", "🎮");
+          if (emo === null) return;
+          const jeu = creerJeu(donnees, nom, emo);
+          if (!jeu) {
+            alert("Nom vide ou jeu déjà existant.");
+            return;
+          }
+          definirJeuActif(donnees, jeu.id);
+          sauvegarder(donnees);
+          rendreJeux();
+        });
+        elJeuxGrille.appendChild(ajout);
+        majActionsJeu();
+      }
+
+      // Bandeau du groupe actif en haut de la page (comme sur les autres pages).
+      function rendreBanniere() {
+        const g = groupeActif(donnees);
+        elBarrePage.style.display = g ? "" : "none";
+        if (g) elNomGroupePage.textContent = g.nom;
+      }
+
+      // Masque l'alerte « choisis ton groupe » dès que tout est prêt.
+      function majActionsJeu() {
+        const g = groupeActif(donnees);
+        const pret = g && g.joueurs.length >= 2;
+        if (pret) elAlerteJouer.style.display = "none";
+      }
+
       function rendreTout() {
+        rendreBanniere();
+        rendreJeux();
         rendreGroupes();
         rendreListeJoueurs();
         rendreCta();
@@ -498,6 +675,16 @@
       rendreThemes();
 
       rendreTout();
+
+      // Recharge les données si la page revient du cache (bouton Précédent),
+      // pour ne pas afficher un état périmé après avoir joué une partie.
+      window.addEventListener("pageshow", (e) => {
+        if (e.persisted) {
+          donnees = chargerDonnees();
+          selId = null;
+          rendreTout();
+        }
+      });
     </script>
   </body>
 </html>

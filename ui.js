@@ -5,7 +5,7 @@
  */
 
 const PAGES = [
-  { id: "organisation", href: "index.html", ic: "👥", label: "Organisation" },
+  { id: "organisation", href: "index.html", ic: "🎮", label: "Jeux" },
   { id: "partie", href: "partie.html", ic: "🎯", label: "Partie" },
   { id: "classement", href: "classement.html", ic: "🏆", label: "Classement" },
   { id: "regles", href: "regles.html", ic: "📖", label: "Règles" },
@@ -61,7 +61,7 @@ function monterChrome(pageActive) {
   const header = document.querySelector("header.app-bar");
   if (header) {
     header.innerHTML = `
-      <img class="logo" src="logo.svg" alt="Pilou" width="40" height="40" />
+      <img class="logo" src="logo.png" alt="Pilou" width="40" height="40" />
       <div class="wordmark">
         <h1 class="nom">Pilou</h1>
         <span class="tag">Qui osera défier Xavier ?</span>

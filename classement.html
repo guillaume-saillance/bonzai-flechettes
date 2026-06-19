@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Classement — Pilou</title>
-    <link rel="icon" type="image/svg+xml" href="logo.svg" />
+    <link rel="icon" type="image/png" href="logo.png" />
     <!-- PWA : application installable + hors-ligne -->
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#0044cc" />
@@ -38,12 +38,30 @@
     </div>
 
     <main>
-      <div class="barre-groupe" id="barre-groupe">
+      <div class="barre-groupe" id="barre-groupe" style="flex-wrap: wrap">
         <span>Groupe&nbsp;: <strong id="nom-groupe-actif"></strong></span>
+        <select id="mode-periode" class="select-jeu" style="margin-left: auto">
+          <option value="indeterminee">Depuis toujours</option>
+          <option value="determinee">Période définie</option>
+        </select>
+        <div
+          class="ligne periode-fin cachee"
+          id="bloc-dates"
+          style="flex-basis: 100%; margin-top: 0.3rem"
+        >
+          <div>
+            <label for="date-debut">Du</label>
+            <input type="date" id="date-debut" />
+          </div>
+          <div>
+            <label for="date-fin">Au (optionnel)</label>
+            <input type="date" id="date-fin" />
+          </div>
+        </div>
       </div>
 
       <section class="carte" id="carte-vide" style="display: none">
-        <p class="vide">Aucun groupe. Rends-toi sur Organisation pour en créer un.</p>
+        <p class="vide">Aucun groupe. Rends-toi sur l'onglet Jeux → Gérer pour en créer un.</p>
       </section>
 
       <div id="zone">
@@ -54,34 +72,16 @@
 
         <!-- ============ SCORES ============ -->
         <div id="vue-scores">
+          <div class="filtre-jeux" id="filtre-jeux" style="display: none"></div>
+
           <section class="carte" id="carte-podium" style="display: none">
             <h2>Podium</h2>
             <div class="podium" id="podium"></div>
           </section>
 
           <section class="carte">
-            <h2>Période</h2>
-            <div class="champ">
-              <select id="mode-periode">
-                <option value="indeterminee">Depuis toujours (indéterminée)</option>
-                <option value="determinee">Période définie (du… au…)</option>
-              </select>
-            </div>
-            <div class="ligne periode-fin cachee" id="bloc-dates">
-              <div>
-                <label for="date-debut">Du</label>
-                <input type="date" id="date-debut" />
-              </div>
-              <div>
-                <label for="date-fin">Au (optionnel)</label>
-                <input type="date" id="date-fin" />
-              </div>
-            </div>
-          </section>
-
-          <section class="carte">
             <div class="entete-section">
-              <h2>Classement</h2>
+              <h2 id="titre-classement">Classement</h2>
               <span class="petit" id="nb-parties"></span>
             </div>
             <div id="classement"></div>
@@ -112,6 +112,9 @@
           </section>
           <section class="carte">
             <h2>Détail par joueur</h2>
+            <p class="petit" id="hint-palmares" style="margin: -0.2rem 0 0.5rem">
+              👆 Touche un joueur pour dérouler tous ses trophées.
+            </p>
             <div id="detail-joueurs"></div>
           </section>
         </div>
@@ -128,7 +131,10 @@
       monterChrome("classement");
       let donnees = chargerDonnees();
       let vue = "scores";
+      let filtreJeu = null; // null = classement Général (tous jeux confondus)
 
+      const elFiltreJeux = document.getElementById("filtre-jeux");
+      const elTitreClassement = document.getElementById("titre-classement");
       const elClassement = document.getElementById("classement");
       const elHistorique = document.getElementById("historique");
       const elNbParties = document.getElementById("nb-parties");
@@ -144,6 +150,7 @@
       const elCartePodium = document.getElementById("carte-podium");
       const elSynthese = document.getElementById("synthese");
       const elDetail = document.getElementById("detail-joueurs");
+      const elHintPalmares = document.getElementById("hint-palmares");
 
       const medailles = ["🥇", "🥈", "🥉"];
 
@@ -204,9 +211,47 @@
           marche(top[2], "bronze", "🥉");
       }
 
+      // Barre de filtres : « Général » + une puce par jeu réellement joué dans
+      // le groupe. Sélectionner une puce restreint le classement à ce jeu.
+      function rendreFiltreJeux() {
+        const g = groupeActif(donnees);
+        if (!g) {
+          elFiltreJeux.style.display = "none";
+          return;
+        }
+        const idsJoues = new Set(g.parties.map((p) => p.jeuId));
+        const jeux = donnees.jeux.filter((j) => idsJoues.has(j.id));
+        if (filtreJeu && !idsJoues.has(filtreJeu)) filtreJeu = null;
+
+        elFiltreJeux.style.display = jeux.length ? "" : "none";
+        if (!jeux.length) return;
+
+        const puces = [{ id: "", label: "🏅 Général" }].concat(
+          jeux.map((j) => ({ id: j.id, label: `${j.embleme || "🎮"} ${j.nom}` }))
+        );
+        elFiltreJeux.innerHTML = puces
+          .map(
+            (p) =>
+              `<button class="chip-jeu${
+                (p.id || null) === filtreJeu ? " actif" : ""
+              }" data-jeu="${p.id}">${p.label}</button>`
+          )
+          .join("");
+        elFiltreJeux.querySelectorAll(".chip-jeu").forEach((b) => {
+          b.addEventListener("click", () => {
+            filtreJeu = b.dataset.jeu || null;
+            rendreTout();
+          });
+        });
+      }
+
       function rendreClassement() {
         const g = groupeActif(donnees);
-        const cl = g ? calculerClassement(g) : [];
+        const cl = g ? calculerClassement(g, filtreJeu) : [];
+        const jeu = filtreJeu ? jeuParId(donnees, filtreJeu) : null;
+        elTitreClassement.textContent = jeu
+          ? `Classement ${jeu.embleme || "🎮"} ${jeu.nom}`
+          : "Classement Général";
         rendrePodium(cl);
         if (cl.length === 0) {
           elClassement.innerHTML =
@@ -234,11 +279,9 @@
 
       function rendreHistorique() {
         const g = groupeActif(donnees);
-        const parties = g
-          ? partiesDeLaPeriode(g).sort(
-              (a, b) => new Date(b.date) - new Date(a.date)
-            )
-          : [];
+        let parties = g ? partiesDeLaPeriode(g) : [];
+        if (filtreJeu) parties = parties.filter((p) => p.jeuId === filtreJeu);
+        parties = parties.sort((a, b) => new Date(b.date) - new Date(a.date));
         elNbParties.textContent =
           parties.length + (parties.length > 1 ? " parties" : " partie");
         if (parties.length === 0) {
@@ -276,8 +319,10 @@
           elSynthese.innerHTML =
             '<p class="vide">Aucune partie jouée pour l\'instant.</p>';
           elDetail.innerHTML = "";
+          elHintPalmares.style.display = "none";
           return;
         }
+        elHintPalmares.style.display = "";
 
         const maxPar = (cle) =>
           cl.reduce((m, j) => (j[cle] > m[cle] ? j : m), cl[0]);
@@ -314,7 +359,7 @@
             return `<div class="joueur-palmares">
               <div class="ligne-haut" role="button">
                 <span class="cellule-joueur">${avatarHTML(j, 30)} <strong>${j.nom}</strong></span>
-                <span class="petit">${j.victoires} V · ${j.meilleureSerie}🔥 record · +${j.bonusSerie} pts <span class="chevron">▸</span></span>
+                <span class="petit">${j.victoires} V · ${j.meilleureSerie}🔥 record · +${j.bonusSerie} pts <span class="chevron">👉</span></span>
               </div>
               <div class="troph-ligne">${mini}</div>
               <div class="troph-detail" style="display:none">
@@ -332,7 +377,7 @@
           haut.addEventListener("click", () => {
             const ouvert = det.style.display !== "none";
             det.style.display = ouvert ? "none" : "";
-            if (chev) chev.textContent = ouvert ? "▸" : "▾";
+            if (chev) chev.textContent = ouvert ? "👉" : "👇";
           });
         });
       }
@@ -367,6 +412,7 @@
         elNomGroupe.textContent = g.nom;
         syncPeriode();
         if (vue === "scores") {
+          rendreFiltreJeux();
           rendreClassement();
           rendreHistorique();
         } else {
@@ -375,6 +421,16 @@
       }
 
       rendreTout();
+
+      // Recharge les données si la page revient du cache (bouton Précédent) :
+      // les parties jouées entre-temps (et les nouveaux jeux) apparaissent
+      // alors immédiatement, sans rechargement manuel.
+      window.addEventListener("pageshow", (e) => {
+        if (e.persisted) {
+          donnees = chargerDonnees();
+          rendreTout();
+        }
+      });
     </script>
   </body>
 </html>

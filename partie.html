@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Partie — Pilou</title>
-    <link rel="icon" type="image/svg+xml" href="logo.svg" />
+    <link rel="icon" type="image/png" href="logo.png" />
     <!-- PWA : application installable + hors-ligne -->
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#0044cc" />
@@ -40,12 +40,7 @@
     <main>
       <div class="barre-groupe" id="barre-groupe">
         <span>Groupe&nbsp;: <strong id="nom-groupe-actif"></strong></span>
-        <button
-          class="btn-discret"
-          id="btn-son"
-          style="margin-left: auto"
-          title="Activer ou couper le son"
-        ></button>
+        <select id="select-jeu" class="select-jeu" style="margin-left: auto"></select>
       </div>
 
       <section class="carte" id="carte-bloquee" style="display: none">
@@ -56,7 +51,14 @@
 
       <div id="zone-partie">
         <section class="carte">
-          <h2>Nouvelle partie</h2>
+          <div class="entete-section">
+            <h2 style="margin: 0">Nouvelle partie</h2>
+            <button
+              class="btn-discret"
+              id="btn-son"
+              title="Activer ou couper le son"
+            ></button>
+          </div>
           <div class="champ">
             <label>Qui a participé&nbsp;? (au moins 2)</label>
             <div class="joueurs-liste" id="liste-participants"></div>
@@ -113,6 +115,7 @@
       const elTexteBloque = document.getElementById("texte-bloque");
       const elBarreGroupe = document.getElementById("barre-groupe");
       const elNomGroupe = document.getElementById("nom-groupe-actif");
+      const elSelectJeu = document.getElementById("select-jeu");
 
       const medailles = ["🥇", "🥈", "🥉"];
       const medaille = (i) => medailles[i] || `${i + 1}ᵉ`;
@@ -204,8 +207,11 @@
 
       function rendreMiniPodium() {
         const g = groupeActif(donnees);
-        const classement = calculerClassement(g).slice(0, 3);
-        if (g.parties.length === 0 || classement.length === 0) {
+        const nbJeu = g.parties.filter(
+          (p) => p.jeuId === donnees.jeuActifId
+        ).length;
+        const classement = calculerClassement(g, donnees.jeuActifId).slice(0, 3);
+        if (nbJeu === 0 || classement.length === 0) {
           elCartePodium.style.display = "none";
           return;
         }
@@ -243,8 +249,10 @@
           }
           const ordreFinal = [...ordre, ...manquants]; // complète le dernier
 
-          // Classement avant/après pour les variations ET la gamification.
-          const clAvant = calculerClassement(g);
+          // Classement avant/après — propre au jeu sélectionné — pour les
+          // variations ET la gamification.
+          const jeuId = donnees.jeuActifId;
+          const clAvant = calculerClassement(g, jeuId);
           const avant = {};
           const trophAvant = {};
           clAvant.forEach((e) => {
@@ -252,10 +260,10 @@
             trophAvant[e.id] = new Set(e.trophees);
           });
 
-          enregistrerPartie(g, ordreFinal);
+          enregistrerPartie(g, ordreFinal, jeuId);
           sauvegarder(donnees);
 
-          const clApres = calculerClassement(g);
+          const clApres = calculerClassement(g, jeuId);
           const apres = {};
           clApres.forEach((e) => (apres[e.id] = e.score));
 
@@ -352,7 +360,7 @@
 
         if (!g) {
           elTexteBloque.textContent =
-            "Aucun groupe pour l'instant. Crée un groupe et ajoute des joueurs dans Organisation.";
+            "Aucun groupe pour l'instant. Crée un groupe et ajoute des joueurs dans l'onglet Jeux → Gérer.";
           return;
         }
         if (!pret) {
@@ -360,10 +368,28 @@
             "Il faut au moins 2 joueurs dans ce groupe pour lancer une partie.";
           return;
         }
+        rendreSelectJeu();
         rendreParticipants();
         rendreOrdre();
         rendreMiniPodium();
       }
+
+      // Choix du jeu auquel on joue (catalogue global, partagé avec l'onglet Jeux).
+      function rendreSelectJeu() {
+        elSelectJeu.innerHTML = donnees.jeux
+          .map(
+            (j) =>
+              `<option value="${j.id}"${
+                j.id === donnees.jeuActifId ? " selected" : ""
+              }>${j.embleme || "🎮"} ${j.nom}</option>`
+          )
+          .join("");
+      }
+      elSelectJeu.addEventListener("change", () => {
+        definirJeuActif(donnees, elSelectJeu.value);
+        sauvegarder(donnees);
+        rendreMiniPodium();
+      });
 
       // Réglage du son (préférence mémorisée).
       const elBtnSon = document.getElementById("btn-son");
@@ -377,6 +403,14 @@
       majSon();
 
       rendreTout();
+
+      // Recharge les données si la page revient du cache (bouton Précédent).
+      window.addEventListener("pageshow", (e) => {
+        if (e.persisted) {
+          donnees = chargerDonnees();
+          rendreTout();
+        }
+      });
     </script>
   </body>
 </html>
