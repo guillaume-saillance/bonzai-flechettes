@@ -252,9 +252,15 @@
         const pret = g && g.joueurs.length >= 2;
         if (pret) return;
         if (e) e.preventDefault();
-        elAlerteJouerTxt.textContent = !g
-          ? "Choisis d'abord ton groupe pour pouvoir jouer."
-          : "Ajoute au moins 2 joueurs à ce groupe pour pouvoir jouer.";
+        // Aucun groupe : on amène directement l'utilisateur à Gérer pour en créer un.
+        if (!g) {
+          elAlerteJouer.style.display = "none";
+          allerVue("gerer");
+          return;
+        }
+        // Groupe existant mais pas assez de joueurs : on alerte et on oriente.
+        elAlerteJouerTxt.textContent =
+          "Ajoute au moins 2 joueurs à ce groupe pour pouvoir jouer.";
         elAlerteJouer.style.display = "";
         window.scrollTo({ top: 0, behavior: "smooth" });
       }

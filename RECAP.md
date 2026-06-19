@@ -56,6 +56,7 @@
 
 ### Saisie d'une partie
 - Bandeau **Groupe + sélecteur de jeu** ; la partie est enregistrée **sur le jeu sélectionné** (`partie.jeuId`).
+- Bascule **👤 Chacun pour soi / 👥 Équipes**. En équipes : on **répartit** les joueurs (auto-équilibré, ＋ pour ajouter une équipe, tailles libres), puis on classe les **équipes**.
 - Choix des **participants** (2+), puis **ordre d'arrivée** (dernier déduit). À 2 : simple « Qui a gagné ? ».
 - **Annulation** de la dernière partie, mini-podium **du jeu en cours**, réglage **son 🔊/🔇** (dans l'en-tête de la carte).
 
@@ -77,7 +78,7 @@
 ## 4. Le score (modèle « ELO multijoueur », par jeu)
 
 - Chaque joueur démarre à **1000 points**, **séparément pour chaque jeu**.
-- À chaque partie, chaque joueur est comparé à tous les autres selon l'ordre d'arrivée (duels, logique ELO).
+- À chaque partie, on compare les **équipes** selon l'ordre d'arrivée (un joueur seul = une équipe d'une personne ; duels, logique ELO). Niveau d'une équipe = **moyenne** des scores de ses membres ; le gain/perte est **identique pour chaque coéquipier** (on gagne/perd ensemble).
 - **On peut gagner comme perdre des points**, mais une victoire rapporte bien plus qu'une défaite ne coûte (`K_GAIN = 200`, `K_PERTE = 50`).
 - Exemples (joueurs de même niveau) : duel **+100 / −25** · à 3 **+200 / ±0 / −50** · à 4 **+300 / +100 / −25 / −75**.
 - Le gagnant est celui qui a **le plus haut score sur la période** choisie.
@@ -142,6 +143,8 @@
 18. **Page Règles** alignée sur le concept multi-jeux.
 19. **Réglage du scoring** : `K_PERTE = 50` (défaites douces), seuil géant `500`.
 20. **Polish UX** : sélecteurs en pill, bouton son déplacé, en-tête centré desktop, palmarès cliquable explicite, alerte « choisis ton groupe ».
+21. **Aucun groupe + clic Jouer** → bascule directe sur *Gérer*.
+22. **Jeu en équipe** : parties par équipes (modèle « liste d'équipes », rétro-compatible), ELO par équipe (moyenne, points partagés), saisie dédiée (bascule + composition) et affichage « Bob & Léa > Tom ».
 
 ---
 

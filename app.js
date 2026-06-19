@@ -271,17 +271,22 @@ function joueurParId(groupe, id) {
 
 // --- Parties (dans un groupe) ----------------------------------------------
 
-// `classement` : tableau des ids ordonnés du 1er (vainqueur) au dernier.
-// `jeuId` : le jeu auquel s'est jouée la partie (catalogue global).
-function enregistrerPartie(groupe, classement, jeuId) {
-  if (!classement || classement.length < 2) return null;
+// `equipes` : tableau d'ÉQUIPES ordonnées de la 1re (gagnante) à la dernière ;
+// chaque équipe est un tableau d'ids de joueurs. Un joueur seul = une équipe
+// d'une personne (mode « chacun pour soi »). `jeuId` : le jeu joué.
+function enregistrerPartie(groupe, equipes, jeuId) {
+  if (!Array.isArray(equipes) || equipes.length < 2) return null;
+  // Tolère une simple liste d'ids (chacun pour soi) : on enrobe en équipes d'un.
+  const eq = equipes.map((e) => (Array.isArray(e) ? [...e] : [e]));
+  const participants = eq.flat();
+  if (participants.length < 2) return null;
   const partie = {
     id: nouvelId(),
     date: new Date().toISOString(),
     jeuId: jeuId || null,
-    classement: [...classement],
-    participants: [...classement], // compat affichage
-    gagnantId: classement[0],
+    equipes: eq,
+    participants,
+    gagnantId: eq[0][0],
   };
   groupe.parties.push(partie);
   return partie;
@@ -294,6 +299,15 @@ function ordreClassement(partie) {
     (id) => id !== partie.gagnantId
   );
   return [partie.gagnantId, ...autres];
+}
+
+// Équipes d'une partie, ordonnées de la 1re à la dernière (chaque équipe = liste
+// d'ids). Gère l'ancien format (liste de joueurs → une équipe d'une personne par
+// joueur), pour rester 100 % rétro-compatible.
+function equipesDePartie(partie) {
+  if (Array.isArray(partie.equipes) && partie.equipes.length)
+    return partie.equipes;
+  return ordreClassement(partie).map((id) => [id]);
 }
 
 // Retire et renvoie la dernière partie enregistrée (pour annuler une erreur).
@@ -354,52 +368,68 @@ function calculerStats(groupe, jeuId) {
   if (jeuId) parties = parties.filter((p) => p.jeuId === jeuId);
 
   parties.forEach((partie) => {
-    const ordre = ordreClassement(partie).filter((id) => S[id]);
-    if (ordre.length < 2) return;
-    const gagnant = ordre[0];
+    // Équipes valides (membres connus du groupe), dans l'ordre d'arrivée.
+    const equipes = equipesDePartie(partie)
+      .map((e) => e.filter((id) => S[id]))
+      .filter((e) => e.length > 0);
+    if (equipes.length < 2) return;
 
-    // Écarts ELO calculés sur les scores d'avant-partie.
-    const deltas = {};
-    ordre.forEach((id, rang) => {
+    // Niveau d'une équipe = moyenne des scores de ses membres (avant la partie).
+    const niveaux = equipes.map(
+      (e) => e.reduce((s, id) => s + S[id].score, 0) / e.length
+    );
+
+    // Performance de chaque équipe vs toutes les autres, selon l'ordre d'arrivée.
+    const deltas = equipes.map((_, rang) => {
       let perf = 0;
-      ordre.forEach((autreId, autreRang) => {
-        if (id === autreId) return;
+      equipes.forEach((__, autreRang) => {
+        if (rang === autreRang) return;
         const resultat = rang < autreRang ? 1 : 0;
-        perf += resultat - scoreAttendu(S[id].score, S[autreId].score);
+        perf += resultat - scoreAttendu(niveaux[rang], niveaux[autreRang]);
       });
-      deltas[id] = (perf >= 0 ? K_GAIN : K_PERTE) * perf;
+      return (perf >= 0 ? K_GAIN : K_PERTE) * perf;
     });
 
-    // Tombeur de géant : a-t-il battu un joueur SEUIL_GEANT+ pts au-dessus ?
-    const exploit = ordre
-      .slice(1)
-      .some((id) => S[id].score - S[gagnant].score >= SEUIL_GEANT);
+    const equipeGagnante = equipes[0];
+    const nbParticipants = equipes.reduce((n, e) => n + e.length, 0);
 
-    ordre.forEach((id) => {
-      S[id].score += deltas[id];
-      S[id].parties += 1;
-      S[id].serie = id === gagnant ? S[id].serie + 1 : 0;
+    // Tombeur de géant : l'équipe gagnante a-t-elle battu une équipe
+    // SEUIL_GEANT+ points au-dessus (niveau moyen) ?
+    const exploit = niveaux.slice(1).some((niv) => niv - niveaux[0] >= SEUIL_GEANT);
+
+    // Chaque membre reçoit le delta de SON équipe (on gagne / perd ensemble).
+    equipes.forEach((e, rang) => {
+      e.forEach((id) => {
+        S[id].score += deltas[rang];
+        S[id].parties += 1;
+        S[id].serie = rang === 0 ? S[id].serie + 1 : 0;
+      });
     });
 
-    const sg = S[gagnant];
-    sg.victoires += 1;
-    sg.meilleureSerie = Math.max(sg.meilleureSerie, sg.serie);
-    if (BONUS_SERIE[sg.serie]) {
-      sg.score += BONUS_SERIE[sg.serie];
-      sg.bonusSerie += BONUS_SERIE[sg.serie];
-    }
-
-    // Trophées
-    sg.trophees.add("premiere");
-    if (sg.serie >= 3) sg.trophees.add("serie3");
-    if (sg.serie >= 5) sg.trophees.add("serie5");
-    if (sg.serie >= 10) sg.trophees.add("serie10");
-    if (sg.victoires >= 10) sg.trophees.add("champion");
-    if (exploit) sg.trophees.add("geant");
-    if (ordre.length >= 4) sg.trophees.add("tablee");
-    ordre.forEach((id) => {
-      if (S[id].parties >= 10) S[id].trophees.add("veteran");
+    // Gamification : chaque membre de l'équipe gagnante.
+    equipeGagnante.forEach((id) => {
+      const sg = S[id];
+      sg.victoires += 1;
+      sg.meilleureSerie = Math.max(sg.meilleureSerie, sg.serie);
+      if (BONUS_SERIE[sg.serie]) {
+        sg.score += BONUS_SERIE[sg.serie];
+        sg.bonusSerie += BONUS_SERIE[sg.serie];
+      }
+      sg.trophees.add("premiere");
+      if (sg.serie >= 3) sg.trophees.add("serie3");
+      if (sg.serie >= 5) sg.trophees.add("serie5");
+      if (sg.serie >= 10) sg.trophees.add("serie10");
+      if (sg.victoires >= 10) sg.trophees.add("champion");
+      if (exploit) sg.trophees.add("geant");
+      if (nbParticipants >= 4) sg.trophees.add("tablee");
     });
+
+    // Vétéran : 10 parties disputées (tous les participants).
+    equipes.forEach((e) =>
+      e.forEach((id) => {
+        if (S[id].parties >= 10) S[id].trophees.add("veteran");
+      })
+    );
   });
 
   return S;

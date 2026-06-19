@@ -418,6 +418,62 @@ button:active {
   border-color: var(--primaire);
 }
 
+/* Bascule « Chacun pour soi / Équipes » (page Partie) : même langage visuel
+   que les puces de sélection des joueurs, pour rester cohérent. */
+.bascule-mode {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.bascule-mode button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: rgba(102, 155, 188, 0.14);
+  border: 1.5px solid transparent;
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--texte);
+}
+
+.bascule-mode button.actif {
+  border-color: var(--steel);
+  background: #fff;
+}
+
+/* Composition des équipes (page Partie, mode Équipes). */
+.compo-ligne {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+}
+
+.compo-choix {
+  display: flex;
+  gap: 0.3rem;
+  flex: 0 0 auto;
+}
+
+.compo-eq {
+  min-width: 2.1rem;
+  padding: 0.3rem 0.55rem;
+  border: 1.5px solid var(--carte-bord);
+  background: #fff;
+  border-radius: 9px;
+  font-weight: 700;
+  color: var(--gris);
+}
+
+.compo-eq.actif {
+  background: var(--primaire);
+  border-color: var(--primaire);
+  color: #fff;
+}
+
 /* ---------- Grille de groupes ---------- */
 
 .groupes-grille {

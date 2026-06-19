@@ -9,7 +9,7 @@
  * fichiers, sinon les anciennes versions resteront servies depuis le cache.
  */
 
-const CACHE = "pilou-v3";
+const CACHE = "pilou-v4";
 
 // Fichiers de l'« app shell » préchargés dès l'installation.
 const ASSETS = [

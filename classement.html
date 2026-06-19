@@ -292,16 +292,14 @@
         elHistorique.innerHTML = parties
           .slice(0, 15)
           .map((p) => {
-            const ordre = ordreClassement(p)
-              .map((id) => joueurParId(g, id))
-              .filter(Boolean);
-            if (ordre.length === 0) return "";
-            const autres = ordre
-              .slice(1)
-              .map((j) => j.nom)
-              .join(" > ");
+            const equipes = equipesDePartie(p)
+              .map((e) => e.map((id) => joueurParId(g, id)).filter(Boolean))
+              .filter((e) => e.length);
+            if (equipes.length < 2) return "";
+            const nomEquipe = (e) => e.map((j) => j.nom).join(" & ");
+            const autres = equipes.slice(1).map(nomEquipe).join(" > ");
             return `<div style="padding:0.5rem 0;border-bottom:1px solid var(--ligne)">
-              <strong>🏆 ${ordre[0].nom}</strong>
+              <strong>🏆 ${nomEquipe(equipes[0])}</strong>
               <span class="petit"> &gt; ${autres || "?"} · ${formaterDate(
               p.date
             )}</span></div>`;

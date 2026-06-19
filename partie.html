@@ -46,7 +46,7 @@
       <section class="carte" id="carte-bloquee" style="display: none">
         <p class="vide" id="texte-bloque"></p>
         <a href="index.html" class="btn-secondaire" style="display: inline-block;
-          text-decoration: none; margin-top: 0.5rem">→ Aller à l'organisation</a>
+          text-decoration: none; margin-top: 0.5rem">→ Aller à Jeux</a>
       </section>
 
       <div id="zone-partie">
@@ -60,8 +60,24 @@
             ></button>
           </div>
           <div class="champ">
+            <label>Comment jouez-vous&nbsp;?</label>
+            <div class="bascule-mode" id="mode-partie">
+              <button data-mode="solo" class="actif">👤 Chacun pour soi</button>
+              <button data-mode="equipes">👥 Équipes</button>
+            </div>
+          </div>
+
+          <div class="champ">
             <label>Qui a participé&nbsp;? (au moins 2)</label>
             <div class="joueurs-liste" id="liste-participants"></div>
+          </div>
+
+          <div class="champ" id="champ-equipes" style="display: none">
+            <div class="entete-section">
+              <label style="margin: 0">Composition des équipes</label>
+              <button class="btn-discret" id="btn-ajouter-equipe">＋ Équipe</button>
+            </div>
+            <div id="liste-compo"></div>
           </div>
 
           <div class="champ">
@@ -101,7 +117,12 @@
       monterChrome("partie");
       let donnees = chargerDonnees();
       let participantsChoisis = new Set();
-      let ordre = []; // ids classés du 1er au dernier
+      // `ordre` : en solo, ids des joueurs du 1er au dernier ; en équipes,
+      // indices des équipes du 1er au dernier.
+      let ordre = [];
+      let mode = "solo"; // "solo" (chacun pour soi) ou "equipes"
+      let nbEquipes = 2;
+      let equipeDe = {}; // id joueur -> index d'équipe (0-based), en mode équipes
 
       const elMessage = document.getElementById("message");
       const elParticipants = document.getElementById("liste-participants");
@@ -116,6 +137,10 @@
       const elBarreGroupe = document.getElementById("barre-groupe");
       const elNomGroupe = document.getElementById("nom-groupe-actif");
       const elSelectJeu = document.getElementById("select-jeu");
+      const elModePartie = document.getElementById("mode-partie");
+      const elChampEquipes = document.getElementById("champ-equipes");
+      const elListeCompo = document.getElementById("liste-compo");
+      const elBtnAjouterEquipe = document.getElementById("btn-ajouter-equipe");
 
       const medailles = ["🥇", "🥈", "🥉"];
       const medaille = (i) => medailles[i] || `${i + 1}ᵉ`;
@@ -141,20 +166,124 @@
             ${avatarHTML(j, 22)}<span>${j.nom}</span>`;
           label.querySelector("input").addEventListener("change", (e) => {
             if (e.target.checked) participantsChoisis.add(j.id);
-            else participantsChoisis.delete(j.id);
-            ordre = ordre.filter((id) => participantsChoisis.has(id));
+            else {
+              participantsChoisis.delete(j.id);
+              delete equipeDe[j.id];
+            }
+            // La composition change : on réinitialise l'ordre.
+            if (mode === "equipes") ordre = [];
+            else ordre = ordre.filter((id) => participantsChoisis.has(id));
             rendreParticipants();
+            rendreCompo();
             rendreOrdre();
           });
           elParticipants.appendChild(label);
         });
       }
 
+      // --- Mode (chacun pour soi / équipes) ---
+      elModePartie.querySelectorAll("button").forEach((b) => {
+        b.addEventListener("click", () => {
+          mode = b.dataset.mode;
+          elModePartie
+            .querySelectorAll("button")
+            .forEach((x) => x.classList.toggle("actif", x === b));
+          elChampEquipes.style.display = mode === "equipes" ? "" : "none";
+          ordre = [];
+          rendreCompo();
+          rendreOrdre();
+        });
+      });
+
+      elBtnAjouterEquipe.addEventListener("click", () => {
+        if (nbEquipes < participantsChoisis.size) {
+          nbEquipes += 1;
+          ordre = [];
+          rendreCompo();
+          rendreOrdre();
+        }
+      });
+
+      // Membres (ids) d'une équipe donnée.
+      function membresEquipe(t) {
+        return [...participantsChoisis].filter((id) => equipeDe[id] === t);
+      }
+      // Indices des équipes ayant au moins un membre.
+      function equipesNonVides() {
+        const v = [];
+        for (let t = 0; t < nbEquipes; t++)
+          if (membresEquipe(t).length) v.push(t);
+        return v;
+      }
+
+      // --- Composition des équipes (mode équipes) ---
+      function rendreCompo() {
+        if (mode !== "equipes") return;
+        const g = groupeActif(donnees);
+        const ids = [...participantsChoisis];
+
+        // Affecte une équipe (la moins remplie) à tout participant sans équipe.
+        ids.forEach((id) => {
+          if (equipeDe[id] === undefined || equipeDe[id] >= nbEquipes) {
+            let best = 0;
+            let bestN = Infinity;
+            for (let t = 0; t < nbEquipes; t++) {
+              const n = membresEquipe(t).length;
+              if (n < bestN) {
+                bestN = n;
+                best = t;
+              }
+            }
+            equipeDe[id] = best;
+          }
+        });
+
+        elBtnAjouterEquipe.style.display =
+          nbEquipes < ids.length ? "" : "none";
+
+        if (ids.length < 2) {
+          elListeCompo.innerHTML =
+            '<p class="vide">Sélectionne au moins 2 participants.</p>';
+          return;
+        }
+
+        elListeCompo.innerHTML = "";
+        ids.forEach((id) => {
+          const j = joueurParId(g, id);
+          const ligne = document.createElement("div");
+          ligne.className = "compo-ligne";
+          let boutons = "";
+          for (let t = 0; t < nbEquipes; t++) {
+            boutons += `<button class="compo-eq${
+              equipeDe[id] === t ? " actif" : ""
+            }" data-eq="${t}">${t + 1}</button>`;
+          }
+          ligne.innerHTML = `<span class="cellule-joueur">${avatarHTML(
+            j,
+            24
+          )} ${j.nom}</span><span class="compo-choix">${boutons}</span>`;
+          ligne.querySelectorAll(".compo-eq").forEach((b) => {
+            b.addEventListener("click", () => {
+              equipeDe[id] = +b.dataset.eq;
+              ordre = [];
+              rendreCompo();
+              rendreOrdre();
+            });
+          });
+          elListeCompo.appendChild(ligne);
+        });
+      }
+
       function rendreOrdre() {
         const g = groupeActif(donnees);
         const ids = [...participantsChoisis];
-        ordre = ordre.filter((id) => participantsChoisis.has(id));
 
+        if (mode === "equipes") {
+          rendreOrdreEquipes(g, ids);
+          return;
+        }
+
+        ordre = ordre.filter((id) => participantsChoisis.has(id));
         elBtnRecommencer.style.display = ordre.length ? "" : "none";
 
         if (ids.length < 2) {
@@ -193,6 +322,64 @@
             opt.innerHTML = `＋ ${avatarHTML(j, 24)} ${j.nom}`;
             opt.addEventListener("click", () => {
               ordre.push(id);
+              rendreOrdre();
+            });
+          }
+          elOrdre.appendChild(opt);
+        });
+      }
+
+      // Ordre d'arrivée des ÉQUIPES (mode équipes). `ordre` contient des indices.
+      function rendreOrdreEquipes(g, ids) {
+        const eqs = equipesNonVides();
+        ordre = ordre.filter((t) => eqs.includes(t));
+        elBtnRecommencer.style.display = ordre.length ? "" : "none";
+
+        if (ids.length < 2 || eqs.length < 2) {
+          elLabelOrdre.textContent = "Ordre d'arrivée des équipes";
+          elOrdre.innerHTML =
+            '<p class="vide">Forme au moins 2 équipes (répartis les joueurs ci-dessus).</p>';
+          return;
+        }
+
+        elLabelOrdre.textContent =
+          eqs.length === 2
+            ? "Quelle équipe a gagné ?"
+            : "Ordre d'arrivée des équipes (clique de la 1re à la dernière)";
+
+        const nonClasses = eqs.filter((t) => !ordre.includes(t));
+        const dernierDeduit = nonClasses.length === 1 ? nonClasses[0] : null;
+
+        const avatarsEq = (t) =>
+          membresEquipe(t)
+            .map((id) => avatarHTML(joueurParId(g, id), 22))
+            .join("");
+        const nomsEq = (t) =>
+          membresEquipe(t)
+            .map((id) => joueurParId(g, id).nom)
+            .join(" & ");
+
+        elOrdre.innerHTML = "";
+        eqs.forEach((t) => {
+          const pos = ordre.indexOf(t);
+          const opt = document.createElement("div");
+          const label = `<strong>Éq.&nbsp;${t + 1}</strong> ${avatarsEq(
+            t
+          )} <span class="petit">${nomsEq(t)}</span>`;
+
+          if (pos >= 0) {
+            opt.className = "gagnant-opt choisi";
+            opt.innerHTML = `${medaille(pos)} ${label}`;
+          } else if (t === dernierDeduit) {
+            opt.className = "gagnant-opt deduit";
+            opt.innerHTML = `${medaille(
+              eqs.length - 1
+            )} ${label} <span class="petit">(dernière)</span>`;
+          } else {
+            opt.className = "gagnant-opt cliquable";
+            opt.innerHTML = `＋ ${label}`;
+            opt.addEventListener("click", () => {
+              ordre.push(t);
               rendreOrdre();
             });
           }
@@ -239,15 +426,36 @@
             afficherMessage("Il faut au moins 2 participants.", "erreur");
             return;
           }
-          const manquants = ids.filter((id) => !ordre.includes(id));
-          if (manquants.length > 1) {
-            afficherMessage(
-              "Termine le classement : clique les joueurs dans l'ordre d'arrivée.",
-              "erreur"
-            );
-            return;
+
+          // Liste des unités ordonnées (chaque unité = une équipe d'ids ;
+          // en solo, une équipe d'une personne).
+          let unites;
+          if (mode === "equipes") {
+            const eqs = equipesNonVides();
+            if (eqs.length < 2) {
+              afficherMessage("Forme au moins 2 équipes.", "erreur");
+              return;
+            }
+            const manquants = eqs.filter((t) => !ordre.includes(t));
+            if (manquants.length > 1) {
+              afficherMessage(
+                "Termine le classement des équipes (clique-les dans l'ordre d'arrivée).",
+                "erreur"
+              );
+              return;
+            }
+            unites = [...ordre, ...manquants].map((t) => membresEquipe(t));
+          } else {
+            const manquants = ids.filter((id) => !ordre.includes(id));
+            if (manquants.length > 1) {
+              afficherMessage(
+                "Termine le classement : clique les joueurs dans l'ordre d'arrivée.",
+                "erreur"
+              );
+              return;
+            }
+            unites = [...ordre, ...manquants].map((id) => [id]);
           }
-          const ordreFinal = [...ordre, ...manquants]; // complète le dernier
 
           // Classement avant/après — propre au jeu sélectionné — pour les
           // variations ET la gamification.
@@ -260,27 +468,30 @@
             trophAvant[e.id] = new Set(e.trophees);
           });
 
-          enregistrerPartie(g, ordreFinal, jeuId);
+          enregistrerPartie(g, unites, jeuId);
           sauvegarder(donnees);
 
           const clApres = calculerClassement(g, jeuId);
           const apres = {};
           clApres.forEach((e) => (apres[e.id] = e.score));
 
-          const nomGagnant = joueurParId(g, ordreFinal[0]).nom;
+          const equipeGagnante = unites[0];
 
           // Animations : confettis + son + toasts (série, trophées débloqués).
           lancerConfettis();
           jouerSonVictoire();
           const annonces = [];
-          const gagEntree = clApres.find((e) => e.id === ordreFinal[0]);
-          if (gagEntree && BONUS_SERIE[gagEntree.serie]) {
-            annonces.push({
-              emoji: "🔥",
-              titre: `Série de ${gagEntree.serie} !`,
-              sous: `${nomGagnant} empoche +${BONUS_SERIE[gagEntree.serie]} points bonus`,
-            });
-          }
+          equipeGagnante.forEach((id) => {
+            const e = clApres.find((x) => x.id === id);
+            const j = joueurParId(g, id);
+            if (e && BONUS_SERIE[e.serie] && j) {
+              annonces.push({
+                emoji: "🔥",
+                titre: `Série de ${e.serie} !`,
+                sous: `${j.nom} empoche +${BONUS_SERIE[e.serie]} points bonus`,
+              });
+            }
+          });
           clApres.forEach((e) => {
             e.trophees.forEach((tid) => {
               if (trophAvant[e.id] && trophAvant[e.id].has(tid)) return;
@@ -298,19 +509,29 @@
 
           participantsChoisis = new Set();
           ordre = [];
+          equipeDe = {};
+          nbEquipes = 2;
           rendreParticipants();
+          rendreCompo();
           rendreOrdre();
           rendreMiniPodium();
 
-          const gagId = ordreFinal[0];
-          const gag = joueurParId(g, gagId);
-          const dGag = apres[gagId] - avant[gagId];
-          const autres = ordreFinal
+          // Résultat : l'équipe gagnante et son gain (partagé), puis les autres.
+          const refGag = equipeGagnante[0];
+          const dGag = apres[refGag] - avant[refGag];
+          const soloGagnant = equipeGagnante.length === 1;
+          const nomsGag = equipeGagnante
+            .map((id) => joueurParId(g, id).nom)
+            .join(" & ");
+          const avatarsGag = equipeGagnante
+            .map((id) => avatarHTML(joueurParId(g, id), 42))
+            .join("");
+          const autres = unites
             .slice(1)
-            .map((id, i) => {
-              const j = joueurParId(g, id);
-              const d = apres[id] - avant[id];
-              return `${medaille(i + 1)} ${j.nom} <strong>${
+            .map((unit, i) => {
+              const noms = unit.map((id) => joueurParId(g, id).nom).join(" & ");
+              const d = apres[unit[0]] - avant[unit[0]];
+              return `${medaille(i + 1)} ${noms} <strong>${
                 d > 0 ? "+" + d : d
               }</strong>`;
             })
@@ -319,15 +540,19 @@
           afficherMessage(
             `<div style="display:flex;justify-content:space-between;align-items:center;gap:0.6rem">
                <div style="display:flex;align-items:center;gap:0.6rem">
-                 ${avatarHTML(gag, 42)}
+                 <span style="display:flex">${avatarsGag}</span>
                  <div>
-                   <div>🏆 <strong>${gag.nom}</strong>
+                   <div>🏆 <strong>${nomsGag}</strong>
                      <span class="delta-badge ${dGag >= 0 ? "pos" : "neg"}">${
               dGag >= 0 ? "+" + dGag : dGag
             }</span></div>
-                   <div class="score-grand"><span id="score-anime">${
-                     avant[gagId]
-                   }</span> pts</div>
+                   ${
+                     soloGagnant
+                       ? `<div class="score-grand"><span id="score-anime">${avant[refGag]}</span> pts</div>`
+                       : `<div class="petit" style="margin-top:0.2rem">chaque coéquipier&nbsp;: <strong>${
+                           dGag >= 0 ? "+" + dGag : dGag
+                         }</strong> pts</div>`
+                   }
                    ${autres ? `<div class="petit" style="margin-top:0.2rem">${autres}</div>` : ""}
                  </div>
                </div>
@@ -336,9 +561,11 @@
             "ok",
             true
           );
-          const elScoreAnime = document.getElementById("score-anime");
-          if (elScoreAnime)
-            animerNombre(elScoreAnime, apres[gagId], 950, avant[gagId]);
+          if (soloGagnant) {
+            const elScoreAnime = document.getElementById("score-anime");
+            if (elScoreAnime)
+              animerNombre(elScoreAnime, apres[refGag], 950, avant[refGag]);
+          }
           document
             .getElementById("btn-annuler")
             .addEventListener("click", () => {
@@ -370,6 +597,7 @@
         }
         rendreSelectJeu();
         rendreParticipants();
+        rendreCompo();
         rendreOrdre();
         rendreMiniPodium();
       }
